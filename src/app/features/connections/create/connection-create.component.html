@@ -9,17 +9,17 @@
   <app-page-header
     eyebrow="Integrações"
     title="Nova conexão"
-    subtitle="Conecte IdP ou ERP. O sync cria pessoas e preenche time e centro de custo automaticamente."
+    subtitle="Escolha o sistema, o modo de autenticação e as credenciais. Depois do sync, pessoas, times e centros de custo são preenchidos automaticamente."
     [hint]="HelpHints.sync"
   >
     <a mat-stroked-button routerLink="/integrations">Cancelar</a>
   </app-page-header>
 
   @if (loading()) {
-    <app-loading-state label="Carregando providers…" />
+    <app-loading-state label="Carregando sistemas…" />
   } @else if (loadError()) {
     <app-error-state
-      title="Não foi possível carregar os providers"
+      title="Não foi possível carregar os sistemas"
       [message]="loadError()!"
       (retry)="loadProviders()"
     />
@@ -31,10 +31,10 @@
       [linear]="false"
       [selectedIndex]="wizardStep()"
     >
-      <mat-step label="Provider" [completed]="!!form.value.provider">
+      <mat-step label="Escolher sistema" [completed]="!!form.value.provider">
         <div class="step-body">
           <p class="ih-muted">
-            Selecione um IdP (pessoas e times) ou ERP como Oracle EBS (centros de custo).
+            Selecione um IdP (pessoas e times) ou um ERP como Oracle EBS (centros de custo).
           </p>
           <div class="provider-grid">
             @for (provider of providers(); track provider.key) {
@@ -51,6 +51,9 @@
                 />
                 <div>
                   <strong>{{ provider.displayName }}</strong>
+                  @if (provider.category) {
+                    <span class="category-chip">{{ categoryLabel(provider.category) }}</span>
+                  }
                   <p class="ih-muted">{{ providerBlurb(provider.key, provider.displayName) }}</p>
                 </div>
               </button>
@@ -58,7 +61,7 @@
           </div>
           @if (!providers().length) {
             <app-empty-state
-              title="Nenhum provider disponível"
+              title="Nenhum sistema disponível"
               description="Não há integrações conectáveis no momento."
               icon="hub"
               [inline]="true"
@@ -67,13 +70,17 @@
         </div>
       </mat-step>
 
-      <mat-step label="Autenticar" [completed]="!!pendingConnectionId()">
+      <mat-step label="Modo de autenticação" [completed]="!!pendingConnectionId()">
         <div class="step-body">
           @if (selectedProvider(); as provider) {
             <p class="ih-muted">
               Configurando <strong>{{ provider.displayName }}</strong>.
-              Em seguida autenticamos via OAuth ou credenciais.
+              Escolha como autenticar e, se quiser, um nome para distinguir esta conexão.
             </p>
+
+            @if (provider.setupGuide) {
+              <app-setup-guide-panel [guide]="provider.setupGuide" />
+            }
 
             <form class="ih-card ih-form-stack-wide" [formGroup]="form" (ngSubmit)="create()">
               @if (authTypes().length) {
@@ -87,7 +94,7 @@
                       (click)="form.patchValue({ authType: '' })"
                     >
                       <strong>Padrão</strong>
-                      <span class="ih-muted">Recomendado pelo provider</span>
+                      <span class="ih-muted">{{ authTypeDescription(provider.auth?.defaultType) }}</span>
                     </button>
                     @for (type of authTypes(); track type) {
                       <button
@@ -97,6 +104,7 @@
                         (click)="form.patchValue({ authType: type })"
                       >
                         <strong>{{ authTypeLabel(type) }}</strong>
+                        <span class="ih-muted">{{ authTypeDescription(type) }}</span>
                       </button>
                     }
                   </div>
@@ -106,7 +114,7 @@
               <mat-form-field appearance="outline" class="full">
                 <mat-label>Nome amigável (opcional)</mat-label>
                 <input matInput formControlName="displayName" placeholder="Ex.: Workspace Produção" />
-                <mat-hint>Ajuda a distinguir várias conexões do mesmo provider.</mat-hint>
+                <mat-hint>Ajuda a distinguir várias conexões do mesmo sistema.</mat-hint>
               </mat-form-field>
 
               <div class="ih-actions">
@@ -124,8 +132,8 @@
               </div>
             </form>
           } @else {
-            <p class="ih-muted">Selecione um provider no passo anterior.</p>
-            <button mat-stroked-button type="button" (click)="goToProviderStep()">Escolher provider</button>
+            <p class="ih-muted">Selecione um sistema no passo anterior.</p>
+            <button mat-stroked-button type="button" (click)="goToProviderStep()">Escolher sistema</button>
           }
         </div>
       </mat-step>
@@ -133,9 +141,15 @@
       <mat-step label="Credenciais" [completed]="false">
         <div class="step-body">
           @if (pendingConnectionId()) {
+            @if (selectedProvider()?.setupGuide; as guide) {
+              <app-setup-guide-panel [guide]="guide" title="Onde obter as credenciais" />
+            }
+
             <p class="ih-muted">
-              Informe as credenciais exigidas pelo provider.
-              Campos opcionais podem ficar em branco (ex.: token OU usuário/senha no Oracle EBS).
+              Preencha os campos exigidos.
+              @if (requireOneOf().length) {
+                Informe <strong>{{ requireOneOfMessage() }}</strong>.
+              }
             </p>
             <form
               class="ih-card ih-form-stack-wide"
@@ -145,23 +159,36 @@
               @for (field of credentialFields(); track field.name) {
                 <mat-form-field appearance="outline" class="full">
                   <mat-label>{{ field.label }}{{ field.optional ? ' (opcional)' : '' }}</mat-label>
-                  <input
-                    matInput
-                    [type]="field.secret ? 'password' : 'text'"
-                    [formControlName]="field.name"
-                    autocomplete="off"
-                  />
-                  @if (field.secret && !field.optional) {
-                    <mat-hint>Valor sensível — não será exibido depois.</mat-hint>
-                  } @else if (field.optional) {
-                    <mat-hint>Opcional — preencha conforme o modo de autenticação do provider.</mat-hint>
+                  @if (field.type === 'textarea') {
+                    <textarea
+                      matInput
+                      rows="5"
+                      [formControlName]="field.name"
+                      [placeholder]="field.placeholder || ''"
+                      autocomplete="off"
+                    ></textarea>
+                  } @else {
+                    <input
+                      matInput
+                      [type]="inputType(field)"
+                      [formControlName]="field.name"
+                      [placeholder]="field.placeholder || ''"
+                      autocomplete="off"
+                    />
                   }
-                  @if (credentialsForm.get(field.name)?.touched && credentialsForm.get(field.name)?.hasError('required')) {
-                    <mat-error>Campo obrigatório</mat-error>
-                  } @else if (credentialsForm.get(field.name)?.touched && credentialsForm.get(field.name)?.hasError('api')) {
-                    <mat-error>{{ credentialsForm.get(field.name)?.getError('api') }}</mat-error>
+                  @if (field.hint) {
+                    <mat-hint>{{ field.hint }}</mat-hint>
+                  } @else if (field.secret && !field.optional) {
+                    <mat-hint>Valor sensível — não será exibido depois.</mat-hint>
+                  }
+                  @if (fieldError(field.name); as err) {
+                    <mat-error>{{ err }}</mat-error>
                   }
                 </mat-form-field>
+              }
+
+              @if (credentialsForm.touched && credentialsForm.hasError('requireOneOf')) {
+                <p class="form-error">Informe {{ requireOneOfMessage() }}.</p>
               }
 
               <button mat-flat-button color="primary" [disabled]="submitting()">

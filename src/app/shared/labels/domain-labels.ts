@@ -18,12 +18,36 @@ const STATUS_LABELS: Record<string, string> = {
 const AUTH_TYPE_LABELS: Record<string, string> = {
   oauth: 'OAuth',
   oauth2: 'OAuth 2.0',
+  oauth2_authorization_code: 'OAuth (autorização)',
+  oauth2authorizationcode: 'OAuth (autorização)',
+  oauth2_client_credentials: 'Credenciais de aplicativo',
+  oauth2clientcredentials: 'Credenciais de aplicativo',
   client_credentials: 'Credenciais de aplicativo',
   clientcredentials: 'Credenciais de aplicativo',
-  api_key: 'Chave de API',
-  apikey: 'Chave de API',
+  api_key: 'Chave de API / token',
+  apikey: 'Chave de API / token',
   basic: 'Usuário e senha',
   service_account: 'Conta de serviço',
+  serviceaccount: 'Conta de serviço',
+};
+
+const AUTH_TYPE_DESCRIPTIONS: Record<string, string> = {
+  oauth2_authorization_code:
+    'Você será redirecionado ao provedor para autorizar o acesso.',
+  oauth2authorizationcode:
+    'Você será redirecionado ao provedor para autorizar o acesso.',
+  oauth2_client_credentials:
+    'Informe Tenant ID, Client ID e Client Secret do app registrado.',
+  oauth2clientcredentials:
+    'Informe Tenant ID, Client ID e Client Secret do app registrado.',
+  client_credentials:
+    'Informe Tenant ID, Client ID e Client Secret do app registrado.',
+  api_key: 'Cole tokens, subdomínio ou chaves geradas no painel do provedor.',
+  apikey: 'Cole tokens, subdomínio ou chaves geradas no painel do provedor.',
+  service_account:
+    'Use e-mail e chave privada de uma service account (ex.: Google).',
+  serviceaccount:
+    'Use e-mail e chave privada de uma service account (ex.: Google).',
 };
 
 const PROVIDER_BLURBS: Record<string, string> = {
@@ -170,6 +194,17 @@ export function authTypeLabel(authType: string | null | undefined): string {
   if (!authType) return 'Padrão do provider';
   const key = authType.toLowerCase().replace(/[\s-]/g, '_');
   return AUTH_TYPE_LABELS[key] ?? authType;
+}
+
+export function authTypeDescription(authType: string | null | undefined): string {
+  if (!authType) {
+    return 'Usa o modo recomendado pelo provedor.';
+  }
+  const key = authType.toLowerCase().replace(/[\s-]/g, '_');
+  return (
+    AUTH_TYPE_DESCRIPTIONS[key] ??
+    'Siga as instruções do provedor para este modo de autenticação.'
+  );
 }
 
 export function providerLabel(key: string | null | undefined): string {

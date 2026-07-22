@@ -1,10 +1,8 @@
 import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
 import { ActivatedRoute, RouterLink } from '@angular/router';
-import { JsonPipe } from '@angular/common';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
-import { MatExpansionModule } from '@angular/material/expansion';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
@@ -34,6 +32,7 @@ import { isProviderConnectable } from '../catalog/integrations-catalog.models';
 import { HelpHints } from '../../../shared/labels/help-hints';
 import { InfoHintComponent } from '../../../shared/components/info-hint/info-hint.component';
 import { ProviderIconComponent } from '../../../shared/components/provider-icon/provider-icon.component';
+import { SetupGuidePanelComponent } from '../../../shared/components/setup-guide-panel/setup-guide-panel.component';
 
 const CAPABILITY_ENTITY_LABELS: Record<string, string> = {
   identity: 'Identidades',
@@ -48,11 +47,9 @@ const CAPABILITY_ENTITY_LABELS: Record<string, string> = {
   standalone: true,
   imports: [
     RouterLink,
-    JsonPipe,
     ReactiveFormsModule,
     MatButtonModule,
     MatIconModule,
-    MatExpansionModule,
     MatFormFieldModule,
     MatInputModule,
     MatSlideToggleModule,
@@ -65,6 +62,7 @@ const CAPABILITY_ENTITY_LABELS: Record<string, string> = {
     RelativeTimePipe,
     InfoHintComponent,
     ProviderIconComponent,
+    SetupGuidePanelComponent,
   ],
   templateUrl: './provider-detail.component.html',
   styleUrl: './provider-detail.component.scss',

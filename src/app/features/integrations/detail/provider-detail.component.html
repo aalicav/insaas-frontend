@@ -181,12 +181,11 @@
       }
 
       @if (p.setupGuide) {
-        <mat-expansion-panel class="tech-panel">
-          <mat-expansion-panel-header>
-            <mat-panel-title>Guia de configuração</mat-panel-title>
-          </mat-expansion-panel-header>
-          <pre>{{ p.setupGuide | json }}</pre>
-        </mat-expansion-panel>
+        <app-setup-guide-panel
+          [guide]="p.setupGuide"
+          title="Guia de configuração"
+          [expanded]="true"
+        />
       }
 
       @if (canManage()) {

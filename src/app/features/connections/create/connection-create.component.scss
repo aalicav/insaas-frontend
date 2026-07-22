@@ -87,6 +87,21 @@
   gap: 0.25rem;
 }
 
+.category-chip {
+  display: inline-block;
+  margin: 0 0 0.35rem;
+  font-size: 0.75rem;
+  color: var(--ih-muted, inherit);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.form-error {
+  margin: 0;
+  color: var(--ih-danger, #b3261e);
+  font-size: 0.875rem;
+}
+
 form {
   display: flex;
   flex-direction: column;

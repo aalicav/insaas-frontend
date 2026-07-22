@@ -17,16 +17,39 @@ export interface Connection {
   updatedAt?: string;
 }
 
+export type CredentialFieldType = 'text' | 'url' | 'email' | 'textarea';
+
 export interface CredentialField {
   name: string;
   label: string;
-  secret: boolean;
+  secret?: boolean;
   optional?: boolean;
+  type?: CredentialFieldType;
+  hint?: string;
+  placeholder?: string;
+  pattern?: string;
+}
+
+export interface SetupGuideStep {
+  title: string;
+  body: string;
+  link?: { label: string; url: string };
+}
+
+export interface SetupGuide {
+  summary: string;
+  prerequisites?: string[];
+  docsUrl?: string;
+  steps: SetupGuideStep[];
 }
 
 export type ConnectionNext =
   | { kind: 'redirect'; url: string }
-  | { kind: 'credentials_form'; fields: CredentialField[] };
+  | {
+      kind: 'credentials_form';
+      fields: CredentialField[];
+      requireOneOf?: string[][];
+    };
 
 export interface CreateConnectionResponse {
   connection: Pick<
@@ -69,7 +92,7 @@ export interface IntegrationProvider {
   enabled: boolean;
   connectable: boolean;
   hasRuntimeAdapter?: boolean;
-  setupGuide?: Record<string, unknown> | null;
+  setupGuide?: SetupGuide | null;
   auth?: {
     defaultType?: string;
     supportedTypes?: string[];
@@ -85,6 +108,6 @@ export interface PatchIntegrationRequest {
   connectable?: boolean;
   auth?: Record<string, unknown>;
   capabilities?: Record<string, unknown>;
-  setupGuide?: Record<string, unknown> | null;
+  setupGuide?: SetupGuide | Record<string, unknown> | null;
   sortOrder?: number;
 }
