@@ -1,0 +1,39 @@
+<div class="palette" (keydown)="onKeydown($event)">
+  <div class="palette-search">
+    <mat-icon>search</mat-icon>
+    <input
+      matInput
+      type="search"
+      placeholder="Buscar pessoas, conexões ou ações…"
+      [formControl]="query"
+      autocomplete="off"
+      autofocus
+      aria-label="Busca global"
+    />
+    @if (loading()) {
+      <mat-spinner diameter="18"></mat-spinner>
+    } @else {
+      <kbd>Esc</kbd>
+    }
+  </div>
+
+  <ul class="palette-list" role="listbox">
+    @for (item of results(); track item.kind + item.id; let i = $index) {
+      <li
+        role="option"
+        [attr.aria-selected]="i === activeIndex()"
+        [class.active]="i === activeIndex()"
+        (click)="select(item)"
+        (mouseenter)="activeIndex.set(i)"
+      >
+        <mat-icon>{{ item.icon }}</mat-icon>
+        <div>
+          <strong>{{ item.title }}</strong>
+          <span class="ih-muted">{{ item.subtitle }}</span>
+        </div>
+      </li>
+    } @empty {
+      <li class="empty ih-muted">Nenhum resultado</li>
+    }
+  </ul>
+</div>

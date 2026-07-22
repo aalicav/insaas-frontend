@@ -1,0 +1,113 @@
+<section class="ih-page">
+  <app-page-header
+    eyebrow="Integrações"
+    title="Conexões"
+    subtitle="Providers conectados à organização ativa."
+  >
+    @if (canWrite()) {
+      <a mat-flat-button color="primary" routerLink="/connections/new">
+        <mat-icon>add</mat-icon>
+        Nova conexão
+      </a>
+    }
+  </app-page-header>
+
+  @if (error()) {
+    <app-error-state
+      title="Não foi possível carregar as conexões"
+      [message]="error()!"
+      (retry)="reload()"
+    />
+  } @else if (!loading() && !connections().length) {
+    <app-empty-state
+      title="Nenhuma conexão"
+      description="Conecte um provider para sincronizar identidades e licenças."
+      icon="hub"
+    >
+      @if (canWrite()) {
+        <a mat-stroked-button color="primary" routerLink="/connections/new">Conectar provider</a>
+      }
+    </app-empty-state>
+  } @else {
+    <div class="list-meta">
+      <span class="ih-muted">
+        @if (loading()) {
+          Carregando…
+        } @else {
+          {{ connections().length }} {{ connections().length === 1 ? 'resultado' : 'resultados' }}
+        }
+      </span>
+    </div>
+
+    <div class="ih-table-wrap">
+      @if (loading()) {
+        <div class="skeleton-table">
+          <div class="skeleton-head">
+            <app-skeleton height="0.85rem" width="20%" />
+            <app-skeleton height="0.85rem" width="16%" />
+            <app-skeleton height="0.85rem" width="14%" />
+            <app-skeleton height="0.85rem" width="18%" />
+          </div>
+          @for (_ of skeletonRows; track $index) {
+            <div class="skeleton-row">
+              <app-skeleton height="1.1rem" width="28%" />
+              <app-skeleton height="1.1rem" width="18%" />
+              <app-skeleton height="1.1rem" width="12%" />
+              <app-skeleton height="1.1rem" width="20%" />
+            </div>
+          }
+        </div>
+      } @else {
+        <table mat-table [dataSource]="connections()">
+          <ng-container matColumnDef="displayName">
+            <th mat-header-cell *matHeaderCellDef>Nome</th>
+            <td mat-cell *matCellDef="let row">
+              <div class="name-cell">
+                <app-provider-icon
+                  class="provider-tile"
+                  [provider]="row.provider"
+                  size="28px"
+                />
+                <span>{{ row.displayName || providerLabel(row.provider) }}</span>
+              </div>
+            </td>
+          </ng-container>
+          <ng-container matColumnDef="provider">
+            <th mat-header-cell *matHeaderCellDef>Provider</th>
+            <td mat-cell *matCellDef="let row">{{ providerLabel(row.provider) }}</td>
+          </ng-container>
+          <ng-container matColumnDef="status">
+            <th mat-header-cell *matHeaderCellDef>Status</th>
+            <td mat-cell *matCellDef="let row">
+              <app-status-badge [status]="row.status" />
+            </td>
+          </ng-container>
+          <ng-container matColumnDef="lastSyncedAt">
+            <th mat-header-cell *matHeaderCellDef>Último sync</th>
+            <td mat-cell *matCellDef="let row">
+              @if (row.lastSyncedAt) {
+                <span class="ih-num" [title]="fullDate(row.lastSyncedAt)">
+                  {{ row.lastSyncedAt | relativeTime }}
+                </span>
+              } @else if (row.status === 'connected') {
+                <span class="never-synced">Nunca sincronizado</span>
+              } @else {
+                <span class="ih-muted">—</span>
+              }
+            </td>
+          </ng-container>
+          <tr mat-header-row *matHeaderRowDef="columns"></tr>
+          <tr
+            mat-row
+            *matRowDef="let row; columns: columns"
+            class="clickable-row"
+            (click)="open(row)"
+            (keydown.enter)="open(row)"
+            tabindex="0"
+            role="link"
+          ></tr>
+        </table>
+      }
+    </div>
+  }
+</section>

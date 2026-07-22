@@ -1,0 +1,159 @@
+<section class="ih-page">
+  @if (loading()) {
+    <app-loading-state label="Carregando conexão…" />
+  } @else if (error()) {
+    <app-error-state
+      title="Não foi possível carregar a conexão"
+      [message]="error()!"
+      (retry)="reload()"
+    >
+      <a mat-stroked-button routerLink="/integrations">Voltar à lista</a>
+    </app-error-state>
+  } @else {
+    @if (connection(); as conn) {
+      <app-breadcrumb
+        [items]="[
+          { label: 'Integrações', link: '/integrations' },
+          { label: conn.displayName || providerLabel(conn.provider) },
+        ]"
+      />
+
+      <app-page-header
+        eyebrow="Conexão"
+        [title]="conn.displayName || providerLabel(conn.provider)"
+        [subtitle]="providerLabel(conn.provider) + ' · ' + authTypeLabel(conn.authType)"
+      >
+        <a mat-stroked-button routerLink="/integrations">Voltar</a>
+        @if (canSync() && conn.status === 'connected') {
+          <button mat-flat-button color="primary" type="button" [disabled]="syncing()" (click)="startSync()">
+            @if (syncing()) {
+              <span class="ih-btn-spinner">
+                <mat-spinner diameter="18"></mat-spinner>
+                Sincronizando…
+              </span>
+            } @else {
+              Sincronizar
+            }
+          </button>
+        }
+      </app-page-header>
+
+      <div class="ih-grid">
+        <article class="ih-card">
+          <div class="ih-label">Status</div>
+          <app-status-badge [status]="conn.status" />
+          @if (conn.lastError) {
+            <p class="error">{{ conn.lastError }}</p>
+          }
+        </article>
+        <article class="ih-card">
+          <div class="ih-label">
+            Último sync
+            <app-info-hint [text]="HelpHints.sync" />
+          </div>
+          @if (conn.lastSyncedAt) {
+            <strong class="ih-num" [title]="fullDate(conn.lastSyncedAt)">
+              {{ conn.lastSyncedAt | relativeTime }}
+            </strong>
+          } @else if (conn.status === 'connected') {
+            <strong class="never-synced">Nunca sincronizado</strong>
+          } @else {
+            <strong class="ih-muted">Nunca</strong>
+          }
+        </article>
+        <article class="ih-card">
+          <div class="ih-label">Sincronização atual</div>
+          @if (syncStatusError()) {
+            <app-error-state
+              [inline]="true"
+              title="Status indisponível"
+              [message]="syncStatusError()!"
+              (retry)="refreshSync()"
+            />
+          } @else {
+            @if (syncStatus()?.latest; as job) {
+              <app-status-badge [status]="job.status" />
+              @if (statEntries().length) {
+                <div class="stat-list">
+                  @for (stat of statEntries(); track stat.key) {
+                    <div class="stat-row">
+                      <span>{{ stat.label }}</span>
+                      <strong>{{ stat.value }}</strong>
+                    </div>
+                  }
+                </div>
+              }
+              @if (job.error) {
+                <p class="error">{{ job.error }}</p>
+              }
+              @if (job.stats) {
+                <mat-expansion-panel class="tech-panel">
+                  <mat-expansion-panel-header>
+                    <mat-panel-title>Detalhes técnicos</mat-panel-title>
+                  </mat-expansion-panel-header>
+                  <pre>{{ job.stats | json }}</pre>
+                </mat-expansion-panel>
+              }
+            } @else {
+              <p class="ih-muted">Nenhuma sincronização ainda. Execute um sync para popular estatísticas.</p>
+            }
+          }
+        </article>
+      </div>
+
+      @if (canLifecycle() && conn.status === 'connected') {
+        <form class="ih-card" [formGroup]="identityForm" (ngSubmit)="createIdentity()">
+          <div class="ih-label">
+            Criar identidade no provider
+            <app-info-hint [text]="HelpHints.identity" />
+          </div>
+          <div class="form-grid">
+            <mat-form-field appearance="outline">
+              <mat-label>E-mail</mat-label>
+              <input matInput formControlName="email" />
+            </mat-form-field>
+            <mat-form-field appearance="outline">
+              <mat-label>Nome</mat-label>
+              <input matInput formControlName="displayName" />
+            </mat-form-field>
+            <button mat-flat-button color="primary" type="submit" [disabled]="creatingIdentity()">
+              {{ creatingIdentity() ? 'Criando…' : 'Criar' }}
+            </button>
+          </div>
+        </form>
+      }
+
+      @if (recentJobs().length) {
+        <section class="ih-card">
+          <div class="ih-label">Execuções recentes</div>
+          <ol class="sync-timeline">
+            @for (job of recentJobs(); track job.id) {
+              <li>
+                <div class="timeline-head">
+                  <app-status-badge [status]="job.status" />
+                  <span
+                    class="ih-num"
+                    [title]="fullDate(job.finishedAt || job.startedAt)"
+                  >
+                    {{ (job.finishedAt || job.startedAt) | relativeTime: 'em andamento' }}
+                  </span>
+                  <span class="ih-muted duration">{{ formatDuration(job) }}</span>
+                </div>
+                @if (knownStatEntries(job.stats).length) {
+                  <div class="stat-chips">
+                    @for (stat of knownStatEntries(job.stats); track stat.key) {
+                      <span>{{ stat.label }} {{ stat.value }}</span>
+                    }
+                  </div>
+                }
+                @if (job.error) {
+                  <p class="error">{{ job.error }}</p>
+                }
+              </li>
+            }
+          </ol>
+        </section>
+      }
+    }
+  }
+</section>

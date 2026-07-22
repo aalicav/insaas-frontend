@@ -1,0 +1,377 @@
+<section class="panel-page">
+  <header class="page-hero">
+    <div>
+      <h1 class="ih-display">Painel de controle</h1>
+      <p>Acompanhe integrações, identidades e o estado da organização.</p>
+    </div>
+  </header>
+
+  @if (showCharts()) {
+    <form class="ih-card filters dashboard-filters" [formGroup]="filters">
+      @if (canSpend() || canCatalog()) {
+        <mat-form-field appearance="outline">
+          <mat-label>Período</mat-label>
+          <mat-select formControlName="periodDays">
+            @for (opt of periodOptions; track opt.value) {
+              <mat-option [value]="opt.value">{{ opt.label }}</mat-option>
+            }
+          </mat-select>
+        </mat-form-field>
+      }
+      @if (canPeople() || canSpend()) {
+        <mat-form-field appearance="outline">
+          <mat-label>Visão organizacional</mat-label>
+          <mat-select formControlName="dimension">
+            <mat-option value="team">Por time</mat-option>
+            <mat-option value="cost_center">Por centro de custo</mat-option>
+          </mat-select>
+        </mat-form-field>
+      }
+      @if (canCatalog() && canConnections()) {
+        <mat-form-field appearance="outline">
+          <mat-label>Integração</mat-label>
+          <mat-select formControlName="connectionId">
+            <mat-option value="">Todas</mat-option>
+            @for (conn of connections(); track conn.id) {
+              <mat-option [value]="conn.id">
+                {{ conn.displayName || providerLabel(conn.provider) }}
+              </mat-option>
+            }
+          </mat-select>
+        </mat-form-field>
+      }
+      <div class="filter-actions">
+        @if (hasActiveFilters()) {
+          <button mat-button type="button" (click)="clearFilters()">Limpar filtros</button>
+        }
+      </div>
+    </form>
+  }
+
+  @if (showCharts()) {
+    <section class="charts-section">
+      <div class="charts-stack">
+        @if (canSpend()) {
+          <article class="card chart-card">
+            <div class="card-head">
+              <div>
+                <h2>Gastos por mês</h2>
+                <p>{{ periodLabel() }} · por tipo</p>
+              </div>
+              @if (!spend().loading && !spend().error) {
+                <strong class="chart-kpi">{{ spendTotal() | currency: 'BRL':'symbol':'1.0-0' }}</strong>
+              }
+            </div>
+            @if (spend().loading) {
+              <app-skeleton height="22rem" />
+            } @else if (spend().error) {
+              <button type="button" class="kpi-retry" (click)="retry('spend')">Tentar de novo</button>
+            } @else {
+              <div class="chart-frame">
+                <app-mini-chart
+                  type="bar"
+                  [data]="spendChartData()"
+                  [options]="currencyAxisOptions"
+                  [hasData]="spendChartHasData()"
+                  ariaLabel="Gastos por mês"
+                  emptyMessage="Sem gastos no período"
+                />
+              </div>
+            }
+          </article>
+        }
+
+        @if (canCatalog()) {
+          <article class="card chart-card">
+            <div class="card-head">
+              <div>
+                <h2>Utilização de licenças</h2>
+                <p>
+                  Assentos vs atribuídos · {{ periodLabel().toLowerCase() }}
+                  @if (filterState().connectionId) {
+                    · filtrado
+                  }
+                </p>
+              </div>
+              @if (!licenses().loading && !licenses().error) {
+                <strong class="chart-kpi">{{ latestLicenseAssigned() | number }}</strong>
+              }
+            </div>
+            @if (licenses().loading) {
+              <app-skeleton height="22rem" />
+            } @else if (licenses().error) {
+              <button type="button" class="kpi-retry" (click)="retry('licenses')">Tentar de novo</button>
+            } @else {
+              <div class="chart-frame">
+                <app-mini-chart
+                  type="line"
+                  [data]="licensesChartData()"
+                  [options]="lineAxisOptions"
+                  [hasData]="licensesChartHasData()"
+                  ariaLabel="Utilização de licenças"
+                  emptyMessage="Sem snapshots de licenças"
+                />
+              </div>
+            }
+          </article>
+        }
+
+        @if (canSpend()) {
+          <article class="card chart-card">
+            <div class="card-head">
+              <div>
+                <h2>Desperdício por SKU</h2>
+                <p>
+                  Assentos ociosos
+                  <app-info-hint [text]="HelpHints.waste" />
+                </p>
+              </div>
+              @if (!waste().loading && !waste().error) {
+                <strong class="chart-kpi warn">{{ wasteTotal() | currency: 'BRL':'symbol':'1.0-0' }}</strong>
+              }
+            </div>
+            @if (waste().loading) {
+              <app-skeleton height="22rem" />
+            } @else if (waste().error) {
+              <button type="button" class="kpi-retry" (click)="retry('waste')">Tentar de novo</button>
+            } @else {
+              <div class="chart-frame">
+                <app-mini-chart
+                  type="bar"
+                  [data]="wasteChartData()"
+                  [options]="horizontalBarOptions"
+                  [hasData]="wasteChartHasData()"
+                  ariaLabel="Desperdício por SKU"
+                  emptyMessage="Nenhum desperdício estimado"
+                />
+              </div>
+            }
+          </article>
+        }
+
+        @if (canPeople()) {
+          <article class="card chart-card">
+            <div class="card-head">
+              <div>
+                <h2>Pessoas por {{ peopleDimensionLabel() }}</h2>
+                <p>Distribuição ativa no diretório</p>
+              </div>
+              @if (!peopleByUnit().loading && !peopleByUnit().error) {
+                <strong class="chart-kpi">{{ peopleTotal() | number }}</strong>
+              }
+            </div>
+            @if (peopleByUnit().loading) {
+              <app-skeleton height="22rem" />
+            } @else if (peopleByUnit().error) {
+              <button type="button" class="kpi-retry" (click)="retry('people')">Tentar de novo</button>
+            } @else {
+              <div class="chart-frame">
+                <app-mini-chart
+                  type="bar"
+                  [data]="peopleChartData()"
+                  [options]="peopleBarOptions"
+                  [hasData]="peopleChartHasData()"
+                  ariaLabel="Pessoas por unidade"
+                  emptyMessage="Sem pessoas alocadas"
+                />
+              </div>
+            }
+          </article>
+        }
+      </div>
+    </section>
+  }
+
+  <div class="panel-grid">
+    <div class="col-main">
+      @if (showChecklist()) {
+        <section class="card steps-card">
+          <div class="card-head">
+            <div>
+              <h2>Próximos passos</h2>
+              <p>
+                {{ checklistProgress().done }} de {{ checklistProgress().total }} concluídos
+              </p>
+            </div>
+            <span class="progress-pct">{{ checklistProgress().percent }}%</span>
+          </div>
+          <div class="progress-track" aria-hidden="true">
+            <span [style.width.%]="checklistProgress().percent"></span>
+          </div>
+
+          <ol class="steps">
+            @for (step of onboardingSteps(); track step.id) {
+              <li [attr.data-status]="step.status">
+                <div class="step-marker" aria-hidden="true">
+                  @if (step.status === 'done') {
+                    <mat-icon>check</mat-icon>
+                  } @else {
+                    <span>{{ step.index }}</span>
+                  }
+                </div>
+                <div class="step-copy">
+                  <div class="step-title-row">
+                    <strong>{{ step.label }}</strong>
+                    @if (step.statusLabel) {
+                      <span class="status-pill ok">{{ step.statusLabel }}</span>
+                    }
+                  </div>
+                  <span>{{ step.description }}</span>
+                </div>
+                @if (step.status !== 'done' && step.status !== 'blocked') {
+                  <a mat-stroked-button class="step-cta" [routerLink]="step.link">{{ step.cta }}</a>
+                }
+              </li>
+            }
+          </ol>
+        </section>
+      }
+
+      @if (canConnections()) {
+        <section class="card integrations-card">
+          <div class="card-head">
+            <h2>Integrações conectadas</h2>
+            <a mat-button routerLink="/integrations">Ver todas</a>
+          </div>
+
+          @if (connectionCountLoading()) {
+            <div class="integ-row">
+              @for (_ of [1, 2, 3]; track $index) {
+                <app-skeleton height="5.5rem" />
+              }
+            </div>
+          } @else {
+            <div class="integ-row">
+              @for (conn of connections().slice(0, 3); track conn.id) {
+                <a class="integ-item" [routerLink]="['/connections', conn.id]">
+                  <app-provider-icon
+                    class="integ-logo"
+                    [provider]="conn.provider"
+                    size="2rem"
+                  />
+                  <div>
+                    <strong>{{ conn.displayName || providerLabel(conn.provider) }}</strong>
+                    <span class="status-pill" [class.ok]="conn.status === 'connected'" [class.err]="conn.status === 'error'">
+                      {{ conn.status === 'connected' ? 'Conectado' : conn.status === 'error' ? 'Erro' : 'Pendente' }}
+                    </span>
+                    <em>
+                      @if (conn.lastSyncedAt) {
+                        Sync {{ conn.lastSyncedAt | relativeTime }}
+                      } @else {
+                        Nunca sincronizado
+                      }
+                    </em>
+                  </div>
+                </a>
+              }
+              @if (canWriteConnections()) {
+                <a class="integ-item add" routerLink="/connections/new">
+                  <span class="add-icon" aria-hidden="true">+</span>
+                  <strong>Adicionar integração</strong>
+                </a>
+              }
+            </div>
+            @if (!connections().length && !canWriteConnections()) {
+              <app-empty-state
+                [inline]="true"
+                title="Nenhuma integração"
+                description="Peça a um admin para conectar um provider."
+                icon="hub"
+              />
+            }
+          }
+        </section>
+      }
+
+      <aside class="tip-banner">
+        <div class="tip-copy">
+          <strong>Dica do Integration Hub</strong>
+          <p>
+            Mantenha o sync em dia para reduzir desperdício de licenças
+            <app-info-hint [text]="HelpHints.waste" />
+            e manter o diretório reconciliado.
+          </p>
+          <a mat-button color="primary" routerLink="/integrations">Saiba como funciona</a>
+        </div>
+      </aside>
+    </div>
+
+    <aside class="col-side">
+      <section class="card summary-card">
+        <h2>Resumo da organização</h2>
+        <div class="kpi-grid">
+          @if (canPeople()) {
+            <article class="kpi">
+              <div class="kpi-icon people" aria-hidden="true"><mat-icon>group</mat-icon></div>
+              @if (peopleByUnit().loading) {
+                <app-skeleton height="1.6rem" width="50%" />
+              } @else if (peopleByUnit().error) {
+                <button type="button" class="kpi-retry" (click)="retry('people')">Tentar de novo</button>
+              } @else {
+                <strong>{{ peopleTotal() | number }}</strong>
+                <span>Pessoas</span>
+              }
+            </article>
+          }
+          @if (canCatalog()) {
+            <article class="kpi">
+              <div class="kpi-icon licenses" aria-hidden="true"><mat-icon>verified</mat-icon></div>
+              @if (licenses().loading) {
+                <app-skeleton height="1.6rem" width="50%" />
+              } @else if (licenses().error) {
+                <button type="button" class="kpi-retry" (click)="retry('licenses')">Tentar de novo</button>
+              } @else {
+                <strong>{{ latestLicenseAssigned() | number }}</strong>
+                <span>Licenças ativas</span>
+              }
+            </article>
+          }
+          @if (canConnections()) {
+            <article class="kpi">
+              <div class="kpi-icon sync" aria-hidden="true"><mat-icon>sync</mat-icon></div>
+              @if (connectionCountLoading()) {
+                <app-skeleton height="1.6rem" width="50%" />
+              } @else {
+                <strong>{{ syncHealthPercent() | number: '1.0-1' }}%</strong>
+                <span>
+                  Sync status
+                  <app-info-hint [text]="HelpHints.sync" />
+                </span>
+              }
+            </article>
+          }
+          @if (canSpend()) {
+            <article class="kpi">
+              <div class="kpi-icon spend" aria-hidden="true"><mat-icon>payments</mat-icon></div>
+              @if (spend().loading) {
+                <app-skeleton height="1.6rem" width="55%" />
+              } @else if (spend().error) {
+                <button type="button" class="kpi-retry" (click)="retry('spend')">Tentar de novo</button>
+              } @else {
+                <strong>{{ spendTotal() | currency: 'BRL':'symbol':'1.0-0' }}</strong>
+                <span>Gastos</span>
+              }
+            </article>
+          }
+        </div>
+      </section>
+
+      <section class="card activity-card">
+        <h2>Atividade recente</h2>
+        <ul class="activity">
+          @for (item of activityFeed(); track item.id) {
+            <li [attr.data-tone]="item.tone">
+              <span class="dot" aria-hidden="true"></span>
+              <div>
+                <p>{{ item.text }}</p>
+                @if (item.when) {
+                  <time [title]="fullDate(item.when)">{{ item.when | relativeTime }}</time>
+                }
+              </div>
+            </li>
+          }
+        </ul>
+      </section>
+    </aside>
+  </div>
+</section>

@@ -1,0 +1,30 @@
+/* Filter layout comes from global `.filters` in styles.scss */
+
+.list-meta {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.unread {
+  font-weight: 650;
+}
+
+.skeleton-table {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 1rem;
+}
+
+.skeleton-head,
+.skeleton-row {
+  display: grid;
+  grid-template-columns: 1.6fr 1fr 0.8fr 1fr;
+  gap: 1rem;
+  align-items: center;
+}
+
+.skeleton-head {
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid var(--ih-border);
+}

@@ -1,0 +1,315 @@
+<section class="ih-page">
+  <app-page-header
+    eyebrow="Governança"
+    title="Organização"
+    [subtitle]="auth.me()?.activeOrganization?.name || 'Organização ativa'"
+  />
+
+  @if (loading()) {
+    <app-loading-state label="Carregando organização…" />
+  } @else if (error()) {
+    <app-error-state
+      title="Não foi possível carregar a organização"
+      [message]="error()!"
+      (retry)="reload()"
+    />
+  } @else {
+    <mat-tab-group animationDuration="0">
+      <mat-tab label="Membros">
+        <div class="tab-body">
+          @if (canManageMembers()) {
+            <form class="ih-card" [formGroup]="inviteForm" (ngSubmit)="invite()">
+              <div class="ih-label">Convidar membro</div>
+              <div class="form-grid">
+                <mat-form-field appearance="outline">
+                  <mat-label>E-mail</mat-label>
+                  <input matInput formControlName="email" />
+                  @if (inviteForm.controls.email.touched && inviteForm.controls.email.hasError('required')) {
+                    <mat-error>Informe o e-mail</mat-error>
+                  } @else if (inviteForm.controls.email.touched && inviteForm.controls.email.hasError('email')) {
+                    <mat-error>E-mail inválido</mat-error>
+                  } @else if (inviteForm.controls.email.touched && inviteForm.controls.email.hasError('api')) {
+                    <mat-error>{{ inviteForm.controls.email.getError('api') }}</mat-error>
+                  }
+                </mat-form-field>
+                <mat-form-field appearance="outline">
+                  <mat-label>Nome</mat-label>
+                  <input matInput formControlName="name" />
+                </mat-form-field>
+                <mat-form-field appearance="outline">
+                  <mat-label>Papel</mat-label>
+                  <mat-select formControlName="roleId">
+                    @for (role of roles(); track role.id) {
+                      <mat-option [value]="role.id">{{ role.name }}</mat-option>
+                    }
+                  </mat-select>
+                  @if (inviteForm.controls.roleId.touched && inviteForm.controls.roleId.hasError('required')) {
+                    <mat-error>Selecione um papel</mat-error>
+                  } @else if (inviteForm.controls.roleId.touched && inviteForm.controls.roleId.hasError('api')) {
+                    <mat-error>{{ inviteForm.controls.roleId.getError('api') }}</mat-error>
+                  }
+                </mat-form-field>
+                <button mat-flat-button color="primary" type="submit" [disabled]="inviting()">
+                  @if (inviting()) {
+                    <span class="ih-btn-spinner">
+                      <mat-spinner diameter="18"></mat-spinner>
+                      Enviando…
+                    </span>
+                  } @else {
+                    Convidar
+                  }
+                </button>
+              </div>
+            </form>
+          }
+
+          @if (!members().length) {
+            <app-empty-state
+              title="Nenhum membro"
+              description="Convide colegas para começar."
+              icon="group_add"
+            />
+          } @else {
+            <div class="ih-table-wrap">
+              <table mat-table [dataSource]="members()">
+                <ng-container matColumnDef="name">
+                  <th mat-header-cell *matHeaderCellDef>Nome</th>
+                  <td mat-cell *matCellDef="let row">{{ row.name || '—' }}</td>
+                </ng-container>
+                <ng-container matColumnDef="email">
+                  <th mat-header-cell *matHeaderCellDef>E-mail</th>
+                  <td mat-cell *matCellDef="let row">{{ row.email }}</td>
+                </ng-container>
+                <ng-container matColumnDef="role">
+                  <th mat-header-cell *matHeaderCellDef>Papel</th>
+                  <td mat-cell *matCellDef="let row">{{ row.roleName }}</td>
+                </ng-container>
+                <ng-container matColumnDef="status">
+                  <th mat-header-cell *matHeaderCellDef>Status</th>
+                  <td mat-cell *matCellDef="let row">
+                    <app-status-badge [status]="row.status" />
+                  </td>
+                </ng-container>
+                <ng-container matColumnDef="actions">
+                  <th mat-header-cell *matHeaderCellDef></th>
+                  <td mat-cell *matCellDef="let row">
+                    @if (canManageMembers()) {
+                      <div class="ih-actions">
+                        @if (row.status === 'invited') {
+                          <button
+                            mat-button
+                            type="button"
+                            [disabled]="isMemberBusy(row)"
+                            (click)="resend(row)"
+                          >
+                            Reenviar
+                          </button>
+                        }
+                        @if (row.status === 'active') {
+                          <button
+                            mat-button
+                            type="button"
+                            [disabled]="isMemberBusy(row)"
+                            (click)="setStatus(row, 'suspended')"
+                          >
+                            Suspender
+                          </button>
+                        }
+                        @if (row.status === 'suspended') {
+                          <button
+                            mat-button
+                            type="button"
+                            [disabled]="isMemberBusy(row)"
+                            (click)="setStatus(row, 'active')"
+                          >
+                            Reativar
+                          </button>
+                        }
+                        <button
+                          mat-button
+                          color="warn"
+                          type="button"
+                          [disabled]="isMemberBusy(row)"
+                          (click)="remove(row)"
+                        >
+                          @if (isMemberBusy(row)) {
+                            <mat-spinner diameter="16"></mat-spinner>
+                          } @else {
+                            Remover
+                          }
+                        </button>
+                      </div>
+                    }
+                  </td>
+                </ng-container>
+                <tr mat-header-row *matHeaderRowDef="memberColumns"></tr>
+                <tr mat-row *matRowDef="let row; columns: memberColumns"></tr>
+              </table>
+            </div>
+          }
+        </div>
+      </mat-tab>
+
+      <mat-tab label="Papéis">
+        <div class="tab-body">
+          @if (canManageRoles()) {
+            <form class="ih-card" [formGroup]="roleForm" (ngSubmit)="createRole()">
+              <div class="ih-label">{{ editingRoleId() ? 'Editar papel' : 'Novo papel' }}</div>
+              <div class="form-grid">
+                <mat-form-field appearance="outline">
+                  <mat-label>Nome</mat-label>
+                  <input matInput formControlName="name" />
+                  @if (roleForm.controls.name.touched && roleForm.controls.name.hasError('required')) {
+                    <mat-error>Informe o nome</mat-error>
+                  } @else if (roleForm.controls.name.touched && roleForm.controls.name.hasError('minlength')) {
+                    <mat-error>Mínimo de 2 caracteres</mat-error>
+                  } @else if (roleForm.controls.name.touched && roleForm.controls.name.hasError('api')) {
+                    <mat-error>{{ roleForm.controls.name.getError('api') }}</mat-error>
+                  }
+                </mat-form-field>
+                <mat-form-field appearance="outline">
+                  <mat-label>Permissões</mat-label>
+                  <mat-select formControlName="permissions" multiple>
+                    @for (perm of permissionCatalog(); track perm.key) {
+                      <mat-option [value]="perm.key">
+                        {{ perm.description || perm.key }}
+                      </mat-option>
+                    }
+                  </mat-select>
+                  @if (roleForm.controls.permissions.touched && roleForm.controls.permissions.hasError('required')) {
+                    <mat-error>Selecione ao menos uma permissão</mat-error>
+                  } @else if (roleForm.controls.permissions.touched && roleForm.controls.permissions.hasError('api')) {
+                    <mat-error>{{ roleForm.controls.permissions.getError('api') }}</mat-error>
+                  }
+                </mat-form-field>
+                <button mat-flat-button color="primary" type="submit" [disabled]="creatingRole() || savingRole()">
+                  @if (creatingRole() || savingRole()) {
+                    <span class="ih-btn-spinner">
+                      <mat-spinner diameter="18"></mat-spinner>
+                      Salvando…
+                    </span>
+                  } @else {
+                    {{ editingRoleId() ? 'Salvar' : 'Criar' }}
+                  }
+                </button>
+                @if (editingRoleId()) {
+                  <button mat-button type="button" (click)="cancelEditRole()">Cancelar</button>
+                }
+              </div>
+            </form>
+          }
+
+          @if (!roles().length) {
+            <app-empty-state title="Nenhum papel" description="Crie papéis para organizar permissões." />
+          } @else {
+            <div class="ih-table-wrap">
+              <table mat-table [dataSource]="roles()">
+                <ng-container matColumnDef="name">
+                  <th mat-header-cell *matHeaderCellDef>Nome</th>
+                  <td mat-cell *matCellDef="let row">
+                    {{ row.name }}
+                    @if (row.isSystem) {
+                      <span class="ih-muted"> (sistema)</span>
+                    }
+                  </td>
+                </ng-container>
+                <ng-container matColumnDef="permissions">
+                  <th mat-header-cell *matHeaderCellDef>Permissões</th>
+                  <td mat-cell *matCellDef="let row">{{ row.permissions?.length || 0 }}</td>
+                </ng-container>
+                <ng-container matColumnDef="actions">
+                  <th mat-header-cell *matHeaderCellDef></th>
+                  <td mat-cell *matCellDef="let row">
+                    <button mat-button type="button" (click)="viewRolePermissions(row)">
+                      Ver permissões
+                    </button>
+                    @if (canManageRoles() && !row.isSystem) {
+                      <button mat-button type="button" (click)="startEditRole(row)">Editar</button>
+                    }
+                  </td>
+                </ng-container>
+                <tr mat-header-row *matHeaderRowDef="roleColumns"></tr>
+                <tr mat-row *matRowDef="let row; columns: roleColumns"></tr>
+              </table>
+            </div>
+          }
+        </div>
+      </mat-tab>
+
+      @if (canSettings() || canLogo() || canManageChildren()) {
+        <mat-tab label="Configurações">
+          <div class="tab-body">
+            @if (canSettings()) {
+              <form class="ih-card" [formGroup]="settingsForm" (ngSubmit)="saveSettings()">
+                <div class="ih-label">Dados da organização</div>
+                <div class="form-grid">
+                  <mat-form-field appearance="outline">
+                    <mat-label>Nome</mat-label>
+                    <input matInput formControlName="name" />
+                  </mat-form-field>
+                  <button mat-flat-button color="primary" type="submit" [disabled]="savingSettings()">
+                    {{ savingSettings() ? 'Salvando…' : 'Salvar' }}
+                  </button>
+                </div>
+                @if (org(); as o) {
+                  <p class="ih-muted">Slug: {{ o.slug }}</p>
+                }
+              </form>
+            }
+
+            @if (canLogo()) {
+              <article class="ih-card">
+                <div class="ih-label">Logo</div>
+                @if (org()?.logoUrl) {
+                  <img class="org-logo" [src]="org()!.logoUrl!" alt="Logo da organização" />
+                } @else {
+                  <p class="ih-muted">Nenhum logo enviado.</p>
+                }
+                <div class="form-grid">
+                  <input type="file" accept="image/*" (change)="onLogoSelected($event)" [disabled]="uploadingLogo()" />
+                  @if (org()?.logoKey || org()?.logoUrl) {
+                    <button mat-stroked-button type="button" [disabled]="uploadingLogo()" (click)="removeLogo()">
+                      Remover logo
+                    </button>
+                  }
+                </div>
+              </article>
+            }
+
+            @if (canManageChildren()) {
+              <form class="ih-card" [formGroup]="childForm" (ngSubmit)="createChildOrg()">
+                <div class="ih-label">Organização filha</div>
+                <div class="form-grid">
+                  <mat-form-field appearance="outline">
+                    <mat-label>Nome</mat-label>
+                    <input matInput formControlName="name" />
+                  </mat-form-field>
+                  <button mat-flat-button color="primary" type="submit">Criar filha</button>
+                </div>
+              </form>
+              @if (tree().length) {
+                <article class="ih-card">
+                  <div class="ih-label">Árvore</div>
+                  <ul>
+                    @for (node of tree(); track node.id) {
+                      <li>
+                        {{ node.name }}
+                        @if (node.children?.length) {
+                          <ul>
+                            @for (child of node.children; track child.id) {
+                              <li>{{ child.name }}</li>
+                            }
+                          </ul>
+                        }
+                      </li>
+                    }
+                  </ul>
+                </article>
+              }
+            }
+          </div>
+        </mat-tab>
+      }
+    </mat-tab-group>
+  }
+</section>

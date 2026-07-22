@@ -1,0 +1,153 @@
+<mat-sidenav-container
+  class="shell"
+  autosize
+  [class.collapsed]="sidenavCollapsed() && !isHandset()"
+  [class.is-handset]="isHandset()"
+>
+  <mat-sidenav
+    #drawer
+    class="sidenav"
+    [mode]="isHandset() ? 'over' : 'side'"
+    [opened]="!isHandset()"
+    [fixedInViewport]="isHandset()"
+    [style.width.px]="sidenavWidthPx()"
+  >
+    <div class="sidenav-inner">
+      <div class="brand">
+        <div class="brand-mark" aria-hidden="true">IH</div>
+        @if (!sidenavCollapsed() || isHandset()) {
+          <div class="brand-copy">
+            <strong>{{ appName }}</strong>
+            <span>SaaS Platform</span>
+          </div>
+        }
+      </div>
+
+      <nav class="nav" aria-label="Principal">
+        <ul>
+          @for (item of navItems(); track item.route) {
+            <li>
+              <a
+                class="nav-link"
+                [routerLink]="item.route"
+                routerLinkActive="active"
+                [routerLinkActiveOptions]="{ exact: !!item.exact }"
+                [attr.title]="sidenavCollapsed() && !isHandset() ? item.label : null"
+                (click)="closeIfHandset()"
+              >
+                <mat-icon>{{ item.icon }}</mat-icon>
+                @if (!sidenavCollapsed() || isHandset()) {
+                  <span>{{ item.label }}</span>
+                }
+              </a>
+            </li>
+          }
+        </ul>
+      </nav>
+
+      <div class="sidenav-footer">
+        @if (!sidenavCollapsed() || isHandset()) {
+          <div class="plan-card">
+            <div class="plan-top">
+              <span class="plan-name">Enterprise</span>
+              <span class="plan-badge">Ativo</span>
+            </div>
+            <p class="plan-meta">Renovação em 24 dias</p>
+            <div class="plan-bar" aria-hidden="true">
+              <span style="width: 78%"></span>
+            </div>
+            <a class="plan-link" routerLink="/organizations">Ver detalhes do plano</a>
+          </div>
+        }
+
+        <div class="sidenav-meta">
+          @if (!sidenavCollapsed() || isHandset()) {
+            <span class="copy">© Integration Hub</span>
+          }
+          @if (!isHandset()) {
+            <button
+              type="button"
+              class="collapse-btn"
+              (click)="toggleCollapse()"
+              [attr.aria-label]="sidenavCollapsed() ? 'Expandir menu' : 'Recolher menu'"
+            >
+              <mat-icon>{{ sidenavCollapsed() ? 'chevron_right' : 'chevron_left' }}</mat-icon>
+            </button>
+          }
+        </div>
+      </div>
+    </div>
+  </mat-sidenav>
+
+  <mat-sidenav-content>
+    <mat-toolbar class="topbar">
+      @if (isHandset()) {
+        <button mat-icon-button type="button" (click)="drawer.toggle()" aria-label="Abrir menu">
+          <mat-icon>menu</mat-icon>
+        </button>
+      }
+
+      <span class="spacer"></span>
+
+      @if (me(); as user) {
+        <mat-form-field appearance="outline" class="org-field" subscriptSizing="dynamic">
+          <mat-select
+            [value]="user.activeOrganization?.id"
+            [disabled]="switching() || user.memberships.length < 2"
+            (selectionChange)="switchOrg($event.value)"
+          >
+            @for (m of user.memberships; track m.organizationId) {
+              <mat-option [value]="m.organizationId">
+                {{ m.orgName }}
+              </mat-option>
+            }
+          </mat-select>
+        </mat-form-field>
+
+        <button
+          mat-icon-button
+          type="button"
+          class="icon-btn"
+          aria-label="Buscar (Ctrl+K)"
+          (click)="openCommandPalette()"
+        >
+          <mat-icon>search</mat-icon>
+        </button>
+
+        @if (auth.hasPermission('notifications:read')) {
+          <app-notifications-bell />
+        }
+
+        <button mat-flat-button color="primary" class="quick-btn" type="button" (click)="openQuickAction()">
+          <mat-icon>add</mat-icon>
+          Ação rápida
+        </button>
+
+        <button mat-icon-button class="user-btn" [matMenuTriggerFor]="userMenu" type="button" aria-label="Conta">
+          <span class="user-initial">{{ (user.name || user.email || '?').charAt(0).toUpperCase() }}</span>
+        </button>
+        <mat-menu #userMenu="matMenu">
+          <button mat-menu-item routerLink="/profile">
+            <mat-icon>manage_accounts</mat-icon>
+            <span>Perfil</span>
+          </button>
+          <mat-divider></mat-divider>
+          <button mat-menu-item type="button" (click)="logout()">
+            <mat-icon>logout</mat-icon>
+            <span>Sair</span>
+          </button>
+        </mat-menu>
+      }
+    </mat-toolbar>
+
+    <main class="content" [class.content-switching]="switching()">
+      @if (switching()) {
+        <div class="switch-overlay" aria-live="polite" aria-busy="true">
+          <mat-spinner diameter="36"></mat-spinner>
+          <p class="ih-muted">Trocando organização…</p>
+        </div>
+      }
+      <router-outlet />
+    </main>
+  </mat-sidenav-content>
+</mat-sidenav-container>

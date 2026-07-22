@@ -1,0 +1,210 @@
+<section class="ih-page">
+  <app-page-header
+    eyebrow="Finanças"
+    title="Gastos"
+    subtitle="Lançamentos de NF, cartão e ajustes fora do fluxo automático."
+    [hint]="HelpHints.spendKind"
+  />
+
+  @if (canWrite()) {
+    <form class="ih-card create-form" [formGroup]="createForm" (ngSubmit)="createEntry()">
+      <div class="ih-label">
+        Novo lançamento
+        <app-info-hint [text]="HelpHints.spendKind" />
+      </div>
+      <div class="form-grid">
+        <mat-form-field appearance="outline">
+          <mat-label>Tipo</mat-label>
+          <mat-select formControlName="kind">
+            <mat-option value="invoice">Nota fiscal</mat-option>
+            <mat-option value="card">Cartão</mat-option>
+            <mat-option value="adjustment">Ajuste</mat-option>
+          </mat-select>
+        </mat-form-field>
+        <mat-form-field appearance="outline">
+          <mat-label>App gerenciado</mat-label>
+          <mat-select formControlName="managedAppId">
+            <mat-option value="">Nenhum</mat-option>
+            @for (app of apps(); track app.id) {
+              <mat-option [value]="app.id">{{ app.name }}</mat-option>
+            }
+          </mat-select>
+        </mat-form-field>
+        <mat-form-field appearance="outline">
+          <mat-label>Contrato</mat-label>
+          <mat-select formControlName="contractId">
+            <mat-option value="">Nenhum</mat-option>
+            @for (contract of contracts(); track contract.id) {
+              <mat-option [value]="contract.id">
+                {{ contract.managedApp?.name || contract.vendorName || contract.id.slice(0, 8) }}
+              </mat-option>
+            }
+          </mat-select>
+        </mat-form-field>
+        <mat-form-field appearance="outline">
+          <mat-label>Competência</mat-label>
+          <input matInput type="date" formControlName="competenceOn" />
+          <mat-hint>
+            Mês contábil do gasto
+            <app-info-hint [text]="HelpHints.competenceOn" />
+          </mat-hint>
+        </mat-form-field>
+        <mat-form-field appearance="outline">
+          <mat-label>Pagamento</mat-label>
+          <input matInput type="date" formControlName="paidOn" />
+        </mat-form-field>
+        <mat-form-field appearance="outline">
+          <mat-label>Valor</mat-label>
+          <input matInput type="number" min="0.01" step="0.01" formControlName="amount" />
+        </mat-form-field>
+        <mat-form-field appearance="outline">
+          <mat-label>Moeda</mat-label>
+          <input matInput formControlName="currency" />
+        </mat-form-field>
+        <mat-form-field appearance="outline">
+          <mat-label>Referência externa</mat-label>
+          <input matInput formControlName="externalRef" />
+        </mat-form-field>
+        <button mat-flat-button color="primary" type="submit" [disabled]="saving()">
+          @if (saving()) {
+            <span class="ih-btn-spinner">
+              <mat-spinner diameter="18"></mat-spinner>
+              Salvando…
+            </span>
+          } @else {
+            Registrar
+          }
+        </button>
+      </div>
+    </form>
+  }
+
+  <form class="ih-card filters" [formGroup]="filters" (ngSubmit)="reload()">
+    <mat-form-field appearance="outline">
+      <mat-label>Competência de</mat-label>
+      <input matInput type="date" formControlName="competenceFrom" />
+    </mat-form-field>
+    <mat-form-field appearance="outline">
+      <mat-label>Competência até</mat-label>
+      <input matInput type="date" formControlName="competenceTo" />
+    </mat-form-field>
+    <mat-form-field appearance="outline">
+      <mat-label>Tipo</mat-label>
+      <mat-select formControlName="kind">
+        <mat-option value="">Todos</mat-option>
+        <mat-option value="contract_commitment">Compromisso</mat-option>
+        <mat-option value="invoice">Nota fiscal</mat-option>
+        <mat-option value="card">Cartão</mat-option>
+        <mat-option value="adjustment">Ajuste</mat-option>
+      </mat-select>
+    </mat-form-field>
+    <mat-form-field appearance="outline">
+      <mat-label>Contrato</mat-label>
+      <mat-select formControlName="contractId">
+        <mat-option value="">Todos</mat-option>
+        @for (contract of contracts(); track contract.id) {
+          <mat-option [value]="contract.id">
+            {{ contract.managedApp?.name || contract.vendorName || contract.id.slice(0, 8) }}
+          </mat-option>
+        }
+      </mat-select>
+    </mat-form-field>
+    <div class="filter-actions">
+      <button mat-flat-button color="primary" type="submit">Filtrar</button>
+      @if (hasActiveFilters()) {
+        <button mat-button type="button" (click)="clearFilters()">Limpar</button>
+      }
+    </div>
+  </form>
+
+  @if (error()) {
+    <app-error-state
+      title="Não foi possível carregar os gastos"
+      [message]="error()!"
+      (retry)="reload()"
+    />
+  } @else if (!loading() && !entries().length) {
+    @if (hasActiveFilters()) {
+      <app-empty-state
+        title="Nenhum resultado para estes filtros"
+        description="Ajuste ou limpe os filtros para ver mais lançamentos."
+        icon="filter_alt_off"
+      >
+        <button mat-stroked-button type="button" (click)="clearFilters()">Limpar filtros</button>
+      </app-empty-state>
+    } @else {
+      <app-empty-state
+        title="Nenhum lançamento ainda"
+        description="Os compromissos de contrato aparecem automaticamente. Use o formulário acima para NF, cartão ou ajustes."
+        icon="payments"
+      />
+    }
+  } @else {
+    <div class="list-meta">
+      <span class="ih-muted">
+        @if (loading()) {
+          Carregando…
+        } @else {
+          {{ entries().length }} {{ entries().length === 1 ? 'resultado' : 'resultados' }}
+        }
+      </span>
+    </div>
+
+    <div class="ih-table-wrap">
+      @if (loading()) {
+        <div class="skeleton-table">
+          <div class="skeleton-head">
+            <app-skeleton height="0.85rem" width="14%" />
+            <app-skeleton height="0.85rem" width="16%" />
+            <app-skeleton height="0.85rem" width="14%" />
+            <app-skeleton height="0.85rem" width="20%" />
+            <app-skeleton height="0.85rem" width="18%" />
+          </div>
+          @for (_ of skeletonRows; track $index) {
+            <div class="skeleton-row">
+              <app-skeleton height="1.1rem" width="16%" />
+              <app-skeleton height="1.1rem" width="18%" />
+              <app-skeleton height="1.1rem" width="16%" />
+              <app-skeleton height="1.1rem" width="22%" />
+              <app-skeleton height="1.1rem" width="20%" />
+            </div>
+          }
+        </div>
+      } @else {
+        <table mat-table [dataSource]="entries()">
+          <ng-container matColumnDef="kind">
+            <th mat-header-cell *matHeaderCellDef>Tipo</th>
+            <td mat-cell *matCellDef="let row">
+              <app-status-badge [status]="row.kind" [label]="kindLabel(row.kind)" />
+            </td>
+          </ng-container>
+          <ng-container matColumnDef="competence">
+            <th mat-header-cell *matHeaderCellDef>Competência</th>
+            <td mat-cell *matCellDef="let row">
+              <span class="ih-num">{{ formatDate(row.competenceOn) }}</span>
+            </td>
+          </ng-container>
+          <ng-container matColumnDef="amount">
+            <th mat-header-cell *matHeaderCellDef>Valor</th>
+            <td mat-cell *matCellDef="let row">
+              <span class="ih-num">{{ formatMoney(row.amountMinor, row.currency) }}</span>
+              @if (row.currency !== 'BRL' && row.brlAmountMinor) {
+                <span class="ih-muted"> · {{ formatMoney(row.brlAmountMinor, 'BRL') }}</span>
+              }
+            </td>
+          </ng-container>
+          <ng-container matColumnDef="contract">
+            <th mat-header-cell *matHeaderCellDef>Contrato</th>
+            <td mat-cell *matCellDef="let row">{{ contractLabel(row.contractId) }}</td>
+          </ng-container>
+          <ng-container matColumnDef="ref">
+            <th mat-header-cell *matHeaderCellDef>Referência</th>
+            <td mat-cell *matCellDef="let row">{{ row.externalRef || '—' }}</td>
+          </ng-container>
+          <tr mat-header-row *matHeaderRowDef="columns"></tr>
+          <tr mat-row *matRowDef="let row; columns: columns"></tr>
+        </table>
+      }
+    </div>
+  }
+</section>

@@ -1,0 +1,270 @@
+<section class="ih-page">
+  <app-page-header
+    eyebrow="Catálogo"
+    title="Dados sincronizados"
+    subtitle="Identidades, grupos, licenças e apps canônicos vindos das conexões."
+    [hint]="HelpHints.identity"
+  />
+
+  <form class="ih-card filters" [formGroup]="filters" (ngSubmit)="reload()">
+    <mat-form-field appearance="outline">
+      <mat-label>Provedor</mat-label>
+      <input matInput formControlName="provider" placeholder="google_workspace, microsoft_365…" />
+    </mat-form-field>
+    <div class="filter-actions">
+      <button mat-flat-button color="primary" type="submit">Filtrar</button>
+      @if (hasActiveFilters()) {
+        <button mat-button type="button" (click)="clearFilters()">Limpar</button>
+      }
+    </div>
+  </form>
+
+  <mat-tab-group animationDuration="0" (selectedIndexChange)="onTabChange($event)">
+    <mat-tab>
+      <ng-template mat-tab-label>
+        Identidades <app-info-hint [text]="HelpHints.identity" />
+      </ng-template>
+    </mat-tab>
+    <mat-tab label="Grupos" />
+    <mat-tab label="Licenças" />
+    <mat-tab>
+      <ng-template mat-tab-label>
+        Apps <app-info-hint [text]="HelpHints.catalogApp" />
+      </ng-template>
+    </mat-tab>
+  </mat-tab-group>
+
+  <div class="tab-body">
+    @if (error()) {
+      <app-error-state
+        title="Não foi possível carregar os dados"
+        [message]="error()!"
+        (retry)="reload()"
+      />
+    } @else if (!loading() && !currentItems().length) {
+      @if (hasActiveFilters()) {
+        <app-empty-state
+          [title]="emptyTitle()"
+          [description]="emptyDescription()"
+          icon="filter_alt_off"
+        >
+          <button mat-stroked-button type="button" (click)="clearFilters()">Limpar filtros</button>
+        </app-empty-state>
+      } @else {
+        <app-empty-state
+          [title]="emptyTitle()"
+          [description]="emptyDescription()"
+          icon="cloud_sync"
+        />
+      }
+    } @else {
+      <div class="list-meta">
+        <span class="ih-muted">
+          @if (loading()) {
+            Carregando…
+          } @else {
+            {{ currentItems().length }}
+            {{ currentItems().length === 1 ? 'resultado' : 'resultados' }}
+          }
+        </span>
+      </div>
+
+      <div class="ih-table-wrap">
+        @if (loading()) {
+          <div class="skeleton-table" [class.wide]="activeTab() === 'identities'">
+            <div class="skeleton-head">
+              <app-skeleton height="0.85rem" width="18%" />
+              <app-skeleton height="0.85rem" width="22%" />
+              <app-skeleton height="0.85rem" width="14%" />
+              <app-skeleton height="0.85rem" width="12%" />
+              <app-skeleton height="0.85rem" width="14%" />
+              <app-skeleton height="0.85rem" width="14%" />
+              @if (activeTab() === 'identities') {
+                <app-skeleton height="0.85rem" width="12%" />
+              }
+            </div>
+            @for (_ of skeletonRows; track $index) {
+              <div class="skeleton-row">
+                <app-skeleton height="1.1rem" width="20%" />
+                <app-skeleton height="1.1rem" width="24%" />
+                <app-skeleton height="1.1rem" width="14%" />
+                <app-skeleton height="1.1rem" width="10%" />
+                <app-skeleton height="1.1rem" width="14%" />
+                <app-skeleton height="1.1rem" width="14%" />
+                @if (activeTab() === 'identities') {
+                  <app-skeleton height="1.1rem" width="12%" />
+                }
+              </div>
+            }
+          </div>
+        } @else if (activeTab() === 'identities') {
+          <table mat-table [dataSource]="identities()">
+            <ng-container matColumnDef="displayName">
+              <th mat-header-cell *matHeaderCellDef>Nome</th>
+              <td mat-cell *matCellDef="let row">{{ row.displayName || '—' }}</td>
+            </ng-container>
+            <ng-container matColumnDef="email">
+              <th mat-header-cell *matHeaderCellDef>E-mail</th>
+              <td mat-cell *matCellDef="let row">{{ row.email || '—' }}</td>
+            </ng-container>
+            <ng-container matColumnDef="provider">
+              <th mat-header-cell *matHeaderCellDef>Provedor</th>
+              <td mat-cell *matCellDef="let row">{{ providerLabel(row.provider) }}</td>
+            </ng-container>
+            <ng-container matColumnDef="status">
+              <th mat-header-cell *matHeaderCellDef>Status</th>
+              <td mat-cell *matCellDef="let row">
+                <app-status-badge [status]="row.status" />
+              </td>
+            </ng-container>
+            <ng-container matColumnDef="department">
+              <th mat-header-cell *matHeaderCellDef>Departamento</th>
+              <td mat-cell *matCellDef="let row">{{ row.department || '—' }}</td>
+            </ng-container>
+            <ng-container matColumnDef="lastActivity">
+              <th mat-header-cell *matHeaderCellDef>Última atividade</th>
+              <td mat-cell *matCellDef="let row">
+                @if (row.lastActivityAt || row.lastLoginAt) {
+                  <span class="ih-num" [title]="fullDate(row.lastActivityAt || row.lastLoginAt)">
+                    {{ (row.lastActivityAt || row.lastLoginAt) | relativeTime }}
+                  </span>
+                } @else {
+                  <span class="ih-muted">Sem dados</span>
+                }
+              </td>
+            </ng-container>
+            <ng-container matColumnDef="actions">
+              <th mat-header-cell *matHeaderCellDef>Ações</th>
+              <td mat-cell *matCellDef="let row">
+                @if (canLifecycleWrite()) {
+                  <div class="row-actions">
+                    @if (canSuspend(row)) {
+                      <button
+                        mat-stroked-button
+                        type="button"
+                        [disabled]="actionId() === row.id"
+                        (click)="suspendIdentity(row)"
+                      >
+                        Suspender
+                      </button>
+                    }
+                    @if (canDelete(row)) {
+                      <button
+                        mat-stroked-button
+                        color="warn"
+                        type="button"
+                        [disabled]="actionId() === row.id"
+                        (click)="deleteIdentity(row)"
+                      >
+                        Excluir
+                      </button>
+                    }
+                  </div>
+                } @else {
+                  <span class="ih-muted">—</span>
+                }
+              </td>
+            </ng-container>
+            <tr mat-header-row *matHeaderRowDef="identityColumns"></tr>
+            <tr mat-row *matRowDef="let row; columns: identityColumns"></tr>
+          </table>
+        } @else if (activeTab() === 'groups') {
+          <table mat-table [dataSource]="groups()">
+            <ng-container matColumnDef="name">
+              <th mat-header-cell *matHeaderCellDef>Nome</th>
+              <td mat-cell *matCellDef="let row">{{ row.name || '—' }}</td>
+            </ng-container>
+            <ng-container matColumnDef="provider">
+              <th mat-header-cell *matHeaderCellDef>Provedor</th>
+              <td mat-cell *matCellDef="let row">{{ providerLabel(row.provider) }}</td>
+            </ng-container>
+            <ng-container matColumnDef="email">
+              <th mat-header-cell *matHeaderCellDef>E-mail</th>
+              <td mat-cell *matCellDef="let row">{{ row.email || '—' }}</td>
+            </ng-container>
+            <ng-container matColumnDef="memberCount">
+              <th mat-header-cell *matHeaderCellDef>Membros</th>
+              <td mat-cell *matCellDef="let row">
+                @if (row.memberCount !== null && row.memberCount !== undefined) {
+                  <span class="ih-num">{{ row.memberCount }}</span>
+                } @else {
+                  <span class="ih-muted">—</span>
+                }
+              </td>
+            </ng-container>
+            <ng-container matColumnDef="externalId">
+              <th mat-header-cell *matHeaderCellDef>ID externo</th>
+              <td mat-cell *matCellDef="let row">
+                <span class="ih-mono">{{ row.externalId }}</span>
+              </td>
+            </ng-container>
+            <tr mat-header-row *matHeaderRowDef="groupColumns"></tr>
+            <tr mat-row *matRowDef="let row; columns: groupColumns"></tr>
+          </table>
+        } @else if (activeTab() === 'licenses') {
+          <table mat-table [dataSource]="licenses()">
+            <ng-container matColumnDef="skuName">
+              <th mat-header-cell *matHeaderCellDef>Licença</th>
+              <td mat-cell *matCellDef="let row">{{ row.skuName || row.skuId || '—' }}</td>
+            </ng-container>
+            <ng-container matColumnDef="provider">
+              <th mat-header-cell *matHeaderCellDef>Provedor</th>
+              <td mat-cell *matCellDef="let row">{{ providerLabel(row.provider) }}</td>
+            </ng-container>
+            <ng-container matColumnDef="seats">
+              <th mat-header-cell *matHeaderCellDef>Assentos</th>
+              <td mat-cell *matCellDef="let row">
+                @if (row.seats !== null && row.seats !== undefined) {
+                  <span class="ih-num">{{ row.seats }}</span>
+                } @else {
+                  <span class="ih-muted">—</span>
+                }
+              </td>
+            </ng-container>
+            <ng-container matColumnDef="assignedCount">
+              <th mat-header-cell *matHeaderCellDef>Atribuídas</th>
+              <td mat-cell *matCellDef="let row">
+                @if (row.assignedCount !== null && row.assignedCount !== undefined) {
+                  <span class="ih-num">{{ row.assignedCount }}</span>
+                } @else {
+                  <span class="ih-muted">—</span>
+                }
+              </td>
+            </ng-container>
+            <ng-container matColumnDef="externalId">
+              <th mat-header-cell *matHeaderCellDef>ID externo</th>
+              <td mat-cell *matCellDef="let row">
+                <span class="ih-mono">{{ row.externalId }}</span>
+              </td>
+            </ng-container>
+            <tr mat-header-row *matHeaderRowDef="licenseColumns"></tr>
+            <tr mat-row *matRowDef="let row; columns: licenseColumns"></tr>
+          </table>
+        } @else {
+          <table mat-table [dataSource]="apps()">
+            <ng-container matColumnDef="name">
+              <th mat-header-cell *matHeaderCellDef>Nome</th>
+              <td mat-cell *matCellDef="let row">{{ row.name || '—' }}</td>
+            </ng-container>
+            <ng-container matColumnDef="provider">
+              <th mat-header-cell *matHeaderCellDef>Provedor</th>
+              <td mat-cell *matCellDef="let row">{{ providerLabel(row.provider) }}</td>
+            </ng-container>
+            <ng-container matColumnDef="category">
+              <th mat-header-cell *matHeaderCellDef>Categoria</th>
+              <td mat-cell *matCellDef="let row">{{ row.category || '—' }}</td>
+            </ng-container>
+            <ng-container matColumnDef="externalId">
+              <th mat-header-cell *matHeaderCellDef>ID externo</th>
+              <td mat-cell *matCellDef="let row">
+                <span class="ih-mono">{{ row.externalId }}</span>
+              </td>
+            </ng-container>
+            <tr mat-header-row *matHeaderRowDef="appColumns"></tr>
+            <tr mat-row *matRowDef="let row; columns: appColumns"></tr>
+          </table>
+        }
+      </div>
+    }
+  </div>
+</section>

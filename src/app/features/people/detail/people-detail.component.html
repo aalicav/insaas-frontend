@@ -1,0 +1,238 @@
+<section class="ih-page">
+  @if (loading()) {
+    <app-loading-state label="Carregando pessoa…" />
+  } @else if (error()) {
+    <app-error-state
+      title="Não foi possível carregar a pessoa"
+      [message]="error()!"
+      (retry)="reload()"
+    >
+      <a mat-stroked-button routerLink="/people">Voltar à lista</a>
+    </app-error-state>
+  } @else {
+    @if (person(); as p) {
+    <app-breadcrumb
+      [items]="[
+        { label: 'Pessoas', link: '/people' },
+        { label: p.displayName || p.email },
+      ]"
+    />
+
+    <app-page-header
+      eyebrow="Pessoa"
+      [title]="p.displayName || p.email"
+      [subtitle]="p.email"
+    >
+      <a mat-stroked-button routerLink="/people">Voltar</a>
+      @if (canLifecycle()) {
+        <button mat-stroked-button type="button" [disabled]="lifecycleBusy()" (click)="onboard()">
+          Onboarding
+        </button>
+        <button mat-stroked-button type="button" [disabled]="lifecycleBusy()" (click)="offboard()">
+          Offboarding
+        </button>
+      }
+      @if (canWrite()) {
+        <a mat-flat-button color="primary" [routerLink]="['/people', p.id, 'edit']">Editar</a>
+      }
+    </app-page-header>
+
+    <div class="ih-grid">
+      <article class="ih-card">
+        <div class="ih-label">Status</div>
+        <div class="status-row">
+          <app-status-badge [status]="p.status" />
+          @if (p.onLeave && p.currentAbsence) {
+            <app-status-badge
+              status="on_leave"
+              [label]="absenceReasonLabel(p.currentAbsence.reason)"
+            />
+          }
+        </div>
+        <p class="ih-muted">{{ p.jobTitle || 'Sem cargo' }} · {{ p.department || 'Sem departamento' }}</p>
+      </article>
+      <article class="ih-card">
+        <div class="ih-label">
+          Estrutura
+          <app-info-hint [text]="HelpHints.costCenter" />
+        </div>
+        <p>Time: {{ p.teamUnit?.name || '—' }}</p>
+        <p>Centro de custo: {{ p.costCenterUnit?.name || '—' }}</p>
+        <p class="ih-muted">
+          Preenchidos automaticamente no sync (IdP → time, Oracle → CC). O próximo sync reaplica a partir da fonte.
+        </p>
+      </article>
+      <article class="ih-card">
+        <div class="ih-label">Atividade</div>
+        <p>
+          Login:
+          @if (p.lastLoginAt) {
+            <span class="ih-num" [title]="fullDate(p.lastLoginAt)">{{ p.lastLoginAt | relativeTime }}</span>
+          } @else {
+            <span class="ih-muted">sem registro</span>
+          }
+        </p>
+        <p>
+          Atividade:
+          @if (p.lastActivityAt) {
+            <span class="ih-num" [title]="fullDate(p.lastActivityAt)">{{ p.lastActivityAt | relativeTime }}</span>
+          } @else {
+            <span class="ih-muted">sem registro</span>
+          }
+        </p>
+      </article>
+    </div>
+
+    <section class="ih-card">
+      <div class="ih-label">
+        Ausências
+        <app-info-hint [text]="HelpHints.personAbsence" />
+      </div>
+      @if (!p.absences?.length) {
+        <p class="ih-muted">Nenhuma ausência registrada.</p>
+      } @else {
+        <ul>
+          @for (absence of p.absences; track absence.id) {
+            <li>
+              <strong>{{ absenceReasonLabel(absence.reason) }}</strong>
+              <span class="ih-muted">
+                {{ formatDay(absence.startsOn) }}
+                →
+                {{ absence.endsOn ? formatDay(absence.endsOn) : 'em aberto' }}
+              </span>
+              @if (isCurrent(absence)) {
+                <app-status-badge status="on_leave" label="Vigente" />
+              }
+              @if (canWrite()) {
+                <button
+                  mat-button
+                  type="button"
+                  color="warn"
+                  [disabled]="absenceBusy()"
+                  (click)="removeAbsence(absence)"
+                >
+                  Remover
+                </button>
+              }
+            </li>
+          }
+        </ul>
+      }
+
+      @if (canWrite()) {
+        <form class="absence-form" [formGroup]="absenceForm" (ngSubmit)="addAbsence()">
+          <mat-form-field appearance="outline">
+            <mat-label>Motivo</mat-label>
+            <mat-select formControlName="reason">
+              @for (reason of reasons; track reason) {
+                <mat-option [value]="reason">{{ absenceReasonLabel(reason) }}</mat-option>
+              }
+            </mat-select>
+          </mat-form-field>
+          <mat-form-field appearance="outline">
+            <mat-label>Início</mat-label>
+            <input matInput type="date" formControlName="startsOn" />
+          </mat-form-field>
+          <mat-form-field appearance="outline">
+            <mat-label>Fim</mat-label>
+            <input matInput type="date" formControlName="endsOn" />
+          </mat-form-field>
+          <mat-form-field appearance="outline">
+            <mat-label>Nota</mat-label>
+            <input matInput formControlName="note" />
+          </mat-form-field>
+          <button
+            mat-stroked-button
+            color="primary"
+            type="submit"
+            [disabled]="absenceForm.invalid || absenceBusy()"
+          >
+            Registrar ausência
+          </button>
+        </form>
+      }
+    </section>
+
+    <section class="ih-card">
+      <div class="ih-label">Identidades</div>
+      @if (!p.identities.length) {
+        <p class="ih-muted">Nenhuma identidade vinculada.</p>
+      } @else {
+        <ul>
+          @for (identity of p.identities; track identity.id) {
+            <li>
+              <strong>{{ providerLabel(identity.provider) }}</strong>
+              — {{ identity.email || identity.displayName || 'Sem identificação' }}
+              <app-status-badge [status]="identity.status || 'unknown'" />
+            </li>
+          }
+        </ul>
+      }
+    </section>
+
+    <section class="ih-card">
+      <div class="ih-label">Licenças ({{ p.licenses.length }})</div>
+      @if (!p.licenses.length) {
+        <p class="ih-muted">Nenhuma licença atribuída às identities desta pessoa.</p>
+      } @else {
+        <div class="ih-table-wrap licenses-table">
+          <table>
+            <thead>
+              <tr>
+                <th>Licença</th>
+                <th>SKU</th>
+                <th>Provedor</th>
+                <th>Assentos</th>
+                <th>Atribuídas (sku)</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (license of p.licenses; track license.id) {
+                <tr>
+                  <td>{{ license.skuName || license.name || license.externalId || 'Sem nome' }}</td>
+                  <td>
+                    <span class="ih-mono">{{ license.skuId || license.sku || '—' }}</span>
+                  </td>
+                  <td>{{ license.provider ? providerLabel(license.provider) : '—' }}</td>
+                  <td>
+                    @if (license.seats != null) {
+                      <span class="ih-num">{{ license.seats }}</span>
+                    } @else {
+                      <span class="ih-muted">—</span>
+                    }
+                  </td>
+                  <td>
+                    @if (license.assignedCount != null) {
+                      <span class="ih-num">{{ license.assignedCount }}</span>
+                    } @else {
+                      <span class="ih-muted">—</span>
+                    }
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
+    </section>
+
+    @if (canReadLifecycle()) {
+      <section class="ih-card">
+      <div class="ih-label">Execuções</div>
+      @if (!runs().length) {
+        <p class="ih-muted">Nenhuma execução de workflow registrada.</p>
+      } @else {
+          <ul>
+            @for (run of runs(); track run.id) {
+              <li>
+                <a [routerLink]="['/workflows/runs', run.id]">{{ run.trigger }}</a>
+                — <app-status-badge [status]="run.status" />
+              </li>
+            }
+          </ul>
+        }
+      </section>
+    }
+    }
+  }
+</section>

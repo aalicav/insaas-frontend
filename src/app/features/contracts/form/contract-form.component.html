@@ -1,0 +1,168 @@
+<section class="ih-page">
+  <app-breadcrumb
+    [items]="[
+      { label: 'Contratos', link: '/contracts' },
+      { label: isEdit ? 'Editar' : 'Novo contrato' },
+    ]"
+  />
+
+  <app-page-header
+    eyebrow="Contratos"
+    [title]="isEdit ? 'Editar contrato' : 'Novo contrato'"
+  >
+    <a mat-stroked-button routerLink="/contracts">Cancelar</a>
+  </app-page-header>
+
+  @if (loading()) {
+    <app-loading-state label="Carregando contrato…" />
+  } @else if (loadError()) {
+    <app-error-state
+      title="Não foi possível carregar o contrato"
+      [message]="loadError()!"
+      (retry)="loadContract(contractId()!)"
+    >
+      <a mat-stroked-button routerLink="/contracts">Voltar à lista</a>
+    </app-error-state>
+  } @else {
+    <form class="ih-card ih-form-stack-wide" [formGroup]="form" (ngSubmit)="submit()">
+      <mat-form-field appearance="outline" class="full">
+        <mat-label>App gerenciado</mat-label>
+        <mat-select formControlName="managedAppId" (selectionChange)="loadSuggestions()">
+          @for (app of apps(); track app.id) {
+            <mat-option [value]="app.id">{{ app.name }}</mat-option>
+          }
+        </mat-select>
+        @if (form.controls.managedAppId.touched && form.controls.managedAppId.hasError('required')) {
+          <mat-error>Selecione um app</mat-error>
+        }
+      </mat-form-field>
+
+      @if (!isEdit) {
+        <div class="inline-actions">
+          <button
+            mat-stroked-button
+            type="button"
+            [disabled]="loadingSuggestions() || !form.controls.managedAppId.value"
+            (click)="loadSuggestions()"
+          >
+            @if (loadingSuggestions()) {
+              Carregando sugestões…
+            } @else {
+              Carregar sugestões de itens
+            }
+          </button>
+        </div>
+      }
+
+      <div class="form-grid">
+        <mat-form-field appearance="outline">
+          <mat-label>Fornecedor</mat-label>
+          <input matInput formControlName="vendorName" />
+        </mat-form-field>
+        <mat-form-field appearance="outline">
+          <mat-label>CNPJ / ID fiscal</mat-label>
+          <input matInput formControlName="vendorTaxId" />
+        </mat-form-field>
+      </div>
+
+      <div class="form-grid">
+        <mat-form-field appearance="outline">
+          <mat-label>Status</mat-label>
+          <mat-select formControlName="status">
+            <mat-option value="draft">Rascunho</mat-option>
+            <mat-option value="active">Ativo</mat-option>
+            <mat-option value="expired">Expirado</mat-option>
+            <mat-option value="cancelled">Cancelado</mat-option>
+          </mat-select>
+        </mat-form-field>
+        <mat-form-field appearance="outline">
+          <mat-label>Moeda</mat-label>
+          <input matInput formControlName="currency" />
+        </mat-form-field>
+      </div>
+
+      <div class="form-grid">
+        <mat-form-field appearance="outline">
+          <mat-label>Início</mat-label>
+          <input matInput type="date" formControlName="startsOn" />
+          @if (form.controls.startsOn.touched && form.controls.startsOn.hasError('required')) {
+            <mat-error>Informe a data de início</mat-error>
+          }
+        </mat-form-field>
+        <mat-form-field appearance="outline">
+          <mat-label>Término</mat-label>
+          <input matInput type="date" formControlName="endsOn" />
+        </mat-form-field>
+      </div>
+
+      <div class="form-grid">
+        <mat-form-field appearance="outline">
+          <mat-label>Ciclo de cobrança</mat-label>
+          <mat-select formControlName="billingCycle">
+            <mat-option value="monthly">Mensal</mat-option>
+            <mat-option value="yearly">Anual</mat-option>
+            <mat-option value="custom">Personalizado</mat-option>
+          </mat-select>
+        </mat-form-field>
+        <mat-form-field appearance="outline">
+          <mat-label>Tipo de cobrança</mat-label>
+          <mat-select formControlName="chargeType">
+            <mat-option value="prepaid">Pré-pago</mat-option>
+            <mat-option value="postpaid">Pós-pago</mat-option>
+            <mat-option value="on_demand">Sob demanda</mat-option>
+          </mat-select>
+        </mat-form-field>
+      </div>
+
+      <div class="form-grid">
+        <mat-checkbox formControlName="autoRenew">Renovação automática</mat-checkbox>
+        <mat-form-field appearance="outline">
+          <mat-label>Dias de aviso</mat-label>
+          <input matInput type="number" min="0" formControlName="noticeDays" />
+        </mat-form-field>
+      </div>
+
+      <mat-form-field appearance="outline" class="full">
+        <mat-label>Observações</mat-label>
+        <textarea matInput rows="3" formControlName="notes"></textarea>
+      </mat-form-field>
+
+      <div class="line-items">
+        <div class="ih-label">Itens</div>
+        @for (item of lineItems.controls; track $index; let i = $index) {
+          <div class="line-item-row" [formGroup]="$any(item)">
+            <mat-form-field appearance="outline">
+              <mat-label>Nome</mat-label>
+              <input matInput formControlName="name" />
+            </mat-form-field>
+            <mat-form-field appearance="outline">
+              <mat-label>Quantidade</mat-label>
+              <input matInput type="number" min="1" formControlName="quantity" />
+            </mat-form-field>
+            <mat-form-field appearance="outline">
+              <mat-label>Valor unitário</mat-label>
+              <input matInput type="number" min="0" step="0.01" formControlName="unitAmount" />
+            </mat-form-field>
+            @if (lineItems.length > 1) {
+              <button mat-icon-button type="button" aria-label="Remover item" (click)="removeLineItem(i)">
+                <span aria-hidden="true">×</span>
+              </button>
+            }
+          </div>
+        }
+        <button mat-stroked-button type="button" (click)="addLineItem()">Adicionar item</button>
+      </div>
+
+      <button mat-flat-button color="primary" [disabled]="saving()">
+        @if (saving()) {
+          <span class="ih-btn-spinner">
+            <mat-spinner diameter="18"></mat-spinner>
+            Salvando…
+          </span>
+        } @else {
+          Salvar
+        }
+      </button>
+    </form>
+  }
+</section>

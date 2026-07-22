@@ -1,0 +1,185 @@
+<section class="ih-page">
+  <app-breadcrumb
+    [items]="[
+      { label: 'Integrações', link: '/integrations' },
+      { label: 'Nova conexão' },
+    ]"
+  />
+
+  <app-page-header
+    eyebrow="Integrações"
+    title="Nova conexão"
+    subtitle="Conecte IdP ou ERP. O sync cria pessoas e preenche time e centro de custo automaticamente."
+    [hint]="HelpHints.sync"
+  >
+    <a mat-stroked-button routerLink="/integrations">Cancelar</a>
+  </app-page-header>
+
+  @if (loading()) {
+    <app-loading-state label="Carregando providers…" />
+  } @else if (loadError()) {
+    <app-error-state
+      title="Não foi possível carregar os providers"
+      [message]="loadError()!"
+      (retry)="loadProviders()"
+    />
+  } @else {
+    <mat-stepper
+      #stepper
+      class="wizard"
+      [orientation]="isHandset() ? 'vertical' : 'horizontal'"
+      [linear]="false"
+      [selectedIndex]="wizardStep()"
+    >
+      <mat-step label="Provider" [completed]="!!form.value.provider">
+        <div class="step-body">
+          <p class="ih-muted">
+            Selecione um IdP (pessoas e times) ou ERP como Oracle EBS (centros de custo).
+          </p>
+          <div class="provider-grid">
+            @for (provider of providers(); track provider.key) {
+              <button
+                type="button"
+                class="provider-card"
+                [class.selected]="form.value.provider === provider.key"
+                (click)="selectProvider(provider.key)"
+              >
+                <app-provider-icon
+                  class="provider-icon"
+                  [provider]="provider.key"
+                  size="40px"
+                />
+                <div>
+                  <strong>{{ provider.displayName }}</strong>
+                  <p class="ih-muted">{{ providerBlurb(provider.key, provider.displayName) }}</p>
+                </div>
+              </button>
+            }
+          </div>
+          @if (!providers().length) {
+            <app-empty-state
+              title="Nenhum provider disponível"
+              description="Não há integrações conectáveis no momento."
+              icon="hub"
+              [inline]="true"
+            />
+          }
+        </div>
+      </mat-step>
+
+      <mat-step label="Autenticar" [completed]="!!pendingConnectionId()">
+        <div class="step-body">
+          @if (selectedProvider(); as provider) {
+            <p class="ih-muted">
+              Configurando <strong>{{ provider.displayName }}</strong>.
+              Em seguida autenticamos via OAuth ou credenciais.
+            </p>
+
+            <form class="ih-card ih-form-stack-wide" [formGroup]="form" (ngSubmit)="create()">
+              @if (authTypes().length) {
+                <div class="auth-options">
+                  <div class="ih-label">Como autenticar</div>
+                  <div class="auth-grid">
+                    <button
+                      type="button"
+                      class="auth-card"
+                      [class.selected]="!form.value.authType"
+                      (click)="form.patchValue({ authType: '' })"
+                    >
+                      <strong>Padrão</strong>
+                      <span class="ih-muted">Recomendado pelo provider</span>
+                    </button>
+                    @for (type of authTypes(); track type) {
+                      <button
+                        type="button"
+                        class="auth-card"
+                        [class.selected]="form.value.authType === type"
+                        (click)="form.patchValue({ authType: type })"
+                      >
+                        <strong>{{ authTypeLabel(type) }}</strong>
+                      </button>
+                    }
+                  </div>
+                </div>
+              }
+
+              <mat-form-field appearance="outline" class="full">
+                <mat-label>Nome amigável (opcional)</mat-label>
+                <input matInput formControlName="displayName" placeholder="Ex.: Workspace Produção" />
+                <mat-hint>Ajuda a distinguir várias conexões do mesmo provider.</mat-hint>
+              </mat-form-field>
+
+              <div class="ih-actions">
+                <button mat-stroked-button type="button" (click)="goToProviderStep()">Voltar</button>
+                <button mat-flat-button color="primary" type="submit" [disabled]="submitting()">
+                  @if (submitting()) {
+                    <span class="ih-btn-spinner">
+                      <mat-spinner diameter="18"></mat-spinner>
+                      Continuando…
+                    </span>
+                  } @else {
+                    Continuar
+                  }
+                </button>
+              </div>
+            </form>
+          } @else {
+            <p class="ih-muted">Selecione um provider no passo anterior.</p>
+            <button mat-stroked-button type="button" (click)="goToProviderStep()">Escolher provider</button>
+          }
+        </div>
+      </mat-step>
+
+      <mat-step label="Credenciais" [completed]="false">
+        <div class="step-body">
+          @if (pendingConnectionId()) {
+            <p class="ih-muted">
+              Informe as credenciais exigidas pelo provider.
+              Campos opcionais podem ficar em branco (ex.: token OU usuário/senha no Oracle EBS).
+            </p>
+            <form
+              class="ih-card ih-form-stack-wide"
+              [formGroup]="credentialsForm"
+              (ngSubmit)="submitCredentials()"
+            >
+              @for (field of credentialFields(); track field.name) {
+                <mat-form-field appearance="outline" class="full">
+                  <mat-label>{{ field.label }}{{ field.optional ? ' (opcional)' : '' }}</mat-label>
+                  <input
+                    matInput
+                    [type]="field.secret ? 'password' : 'text'"
+                    [formControlName]="field.name"
+                    autocomplete="off"
+                  />
+                  @if (field.secret && !field.optional) {
+                    <mat-hint>Valor sensível — não será exibido depois.</mat-hint>
+                  } @else if (field.optional) {
+                    <mat-hint>Opcional — preencha conforme o modo de autenticação do provider.</mat-hint>
+                  }
+                  @if (credentialsForm.get(field.name)?.touched && credentialsForm.get(field.name)?.hasError('required')) {
+                    <mat-error>Campo obrigatório</mat-error>
+                  } @else if (credentialsForm.get(field.name)?.touched && credentialsForm.get(field.name)?.hasError('api')) {
+                    <mat-error>{{ credentialsForm.get(field.name)?.getError('api') }}</mat-error>
+                  }
+                </mat-form-field>
+              }
+
+              <button mat-flat-button color="primary" [disabled]="submitting()">
+                @if (submitting()) {
+                  <span class="ih-btn-spinner">
+                    <mat-spinner diameter="18"></mat-spinner>
+                    Salvando…
+                  </span>
+                } @else {
+                  Salvar e conectar
+                }
+              </button>
+            </form>
+          } @else {
+            <p class="ih-muted">Conclua a autenticação no passo anterior.</p>
+          }
+        </div>
+      </mat-step>
+    </mat-stepper>
+  }
+</section>

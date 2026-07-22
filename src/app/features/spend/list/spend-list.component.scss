@@ -1,0 +1,32 @@
+/* Filter layout comes from global `.filters` / `.form-grid` in styles.scss */
+
+.create-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.list-meta {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.skeleton-table {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 1rem;
+}
+
+.skeleton-head,
+.skeleton-row {
+  display: grid;
+  grid-template-columns: 0.9fr 1fr 1fr 1.2fr 1fr;
+  gap: 1rem;
+  align-items: center;
+}
+
+.skeleton-head {
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid var(--ih-border);
+}

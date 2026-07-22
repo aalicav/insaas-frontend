@@ -1,0 +1,51 @@
+@use '@angular/material' as mat;
+
+html {
+  @include mat.theme(
+    (
+      color: (
+        theme-type: light,
+        primary: mat.$rose-palette,
+        tertiary: mat.$violet-palette,
+      ),
+      typography: 'Plus Jakarta Sans',
+      density: 0,
+    )
+  );
+}
+
+html {
+  --mat-sys-primary: #6b2030;
+  --mat-sys-on-primary: #ffffff;
+  --mat-sys-primary-container: #f3d6dc;
+  --mat-sys-on-primary-container: #3d1018;
+  --mat-sys-surface: #ffffff;
+  --mat-sys-surface-container: #f7f5f3;
+  --mat-sys-surface-container-low: #f3f1ef;
+  --mat-sys-surface-container-high: #ebe7e4;
+  --mat-sys-surface-container-highest: #e5e0dd;
+  --mat-sys-on-surface: #1a1718;
+  --mat-sys-on-surface-variant: #5c5659;
+  --mat-sys-outline: #b8aea9;
+  --mat-sys-outline-variant: #d4cdc8;
+  --mat-sys-error: #b91c1c;
+  --mat-sys-background: #f3f1ef;
+  --mat-sys-on-background: #1a1718;
+
+  /* Force Material components to use product fonts */
+  --mat-sys-body-large-font: var(--ih-font);
+  --mat-sys-body-medium-font: var(--ih-font);
+  --mat-sys-body-small-font: var(--ih-font);
+  --mat-sys-label-large-font: var(--ih-font);
+  --mat-sys-label-medium-font: var(--ih-font);
+  --mat-sys-label-small-font: var(--ih-font);
+  --mat-sys-title-large-font: var(--ih-font);
+  --mat-sys-title-medium-font: var(--ih-font);
+  --mat-sys-title-small-font: var(--ih-font);
+  --mat-sys-headline-large-font: var(--ih-font-display);
+  --mat-sys-headline-medium-font: var(--ih-font-display);
+  --mat-sys-headline-small-font: var(--ih-font);
+  --mat-sys-display-large-font: var(--ih-font-display);
+  --mat-sys-display-medium-font: var(--ih-font-display);
+  --mat-sys-display-small-font: var(--ih-font-display);
+}

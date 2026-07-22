@@ -1,0 +1,57 @@
+@if (canRead()) {
+  <button
+    mat-icon-button
+    type="button"
+    class="bell-btn"
+    aria-label="Notificações"
+    [matMenuTriggerFor]="notifyMenu"
+    (menuOpened)="onMenuOpened()"
+    [matBadge]="unreadCount() || null"
+    matBadgeColor="warn"
+    [matBadgeHidden]="!unreadCount()"
+    matBadgeSize="small"
+  >
+    <mat-icon>notifications</mat-icon>
+  </button>
+
+  <mat-menu #notifyMenu="matMenu" class="notify-menu" xPosition="before">
+    <div class="menu-header" (click)="$event.stopPropagation()">
+      <strong>Notificações</strong>
+      @if (unreadCount()) {
+        <span class="ih-muted">{{ unreadCount() }} não lidas</span>
+      }
+    </div>
+    <mat-divider />
+
+    @if (loadingMenu()) {
+      <div class="menu-loading" (click)="$event.stopPropagation()">
+        <mat-spinner diameter="24"></mat-spinner>
+      </div>
+    } @else if (!items().length) {
+      <div class="menu-empty ih-muted" (click)="$event.stopPropagation()">
+        Nenhuma notificação não lida
+      </div>
+    } @else {
+      @for (item of items(); track item.id) {
+        <button
+          mat-menu-item
+          type="button"
+          class="notify-item"
+          [disabled]="markingId() === item.id"
+          (click)="openNotification(item, $event)"
+        >
+          <div class="notify-copy">
+            <span class="notify-title">{{ item.title }}</span>
+            <span class="ih-muted notify-time">{{ item.createdAt | relativeTime }}</span>
+          </div>
+        </button>
+      }
+    }
+
+    <mat-divider />
+    <a mat-menu-item routerLink="/notifications">
+      <mat-icon>inbox</mat-icon>
+      <span>Ver todas</span>
+    </a>
+  </mat-menu>
+}

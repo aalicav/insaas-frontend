@@ -1,0 +1,66 @@
+.auth-page {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 1.5rem;
+  background:
+    radial-gradient(ellipse at 20% 0%, color-mix(in srgb, var(--ih-primary) 22%, transparent), transparent 50%),
+    radial-gradient(ellipse at 90% 100%, color-mix(in srgb, var(--ih-primary-dark) 14%, transparent), transparent 40%),
+    var(--ih-bg);
+}
+
+.auth-card {
+  width: min(440px, 100%);
+  background: var(--ih-bg-secondary);
+  border: 1px solid var(--ih-border);
+  border-radius: var(--ih-radius-lg);
+  padding: 1.85rem;
+  box-shadow: var(--ih-shadow-md);
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
+.brand-row {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+}
+
+.brand-mark {
+  width: 42px;
+  height: 42px;
+  border-radius: var(--ih-radius);
+  display: grid;
+  place-items: center;
+  background: var(--ih-primary);
+  color: #fff;
+  font-weight: 700;
+  font-size: 1rem;
+}
+
+h1 {
+  margin: 0.15rem 0 0;
+  font-family: var(--ih-font-display);
+  font-size: 2rem;
+  font-weight: 400;
+  letter-spacing: -0.025em;
+  line-height: 1.15;
+  font-synthesis: none;
+}
+
+form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  margin-top: 0.5rem;
+}
+
+.full {
+  width: 100%;
+}
+
+.submit {
+  min-height: 44px;
+  margin-top: 0.25rem;
+}

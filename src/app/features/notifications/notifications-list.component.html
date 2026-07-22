@@ -1,0 +1,146 @@
+<section class="ih-page">
+  <app-page-header
+    eyebrow="Alertas"
+    title="Notificações"
+    subtitle="Avisos de risco, contratos e eventos de ciclo de vida."
+  >
+    <button
+      mat-stroked-button
+      type="button"
+      [disabled]="markingAll() || !items().length"
+      (click)="markAllRead()"
+    >
+      @if (markingAll()) {
+        <span class="ih-btn-spinner">
+          <mat-spinner diameter="18"></mat-spinner>
+          Marcando…
+        </span>
+      } @else {
+        Marcar todas como lidas
+      }
+    </button>
+  </app-page-header>
+
+  <form class="ih-card filters" [formGroup]="filters" (ngSubmit)="reload()">
+    <mat-form-field appearance="outline">
+      <mat-label>Leitura</mat-label>
+      <mat-select formControlName="unread">
+        <mat-option value="">Todas</mat-option>
+        <mat-option value="unread">Não lidas</mat-option>
+        <mat-option value="read">Lidas</mat-option>
+      </mat-select>
+    </mat-form-field>
+    <div class="filter-actions">
+      <button mat-flat-button color="primary" type="submit">Filtrar</button>
+      @if (hasActiveFilters()) {
+        <button mat-button type="button" (click)="clearFilters()">Limpar</button>
+      }
+    </div>
+  </form>
+
+  @if (error()) {
+    <app-error-state
+      title="Não foi possível carregar as notificações"
+      [message]="error()!"
+      (retry)="reload()"
+    />
+  } @else if (!loading() && !items().length) {
+    @if (hasActiveFilters()) {
+      <app-empty-state
+        title="Nenhum resultado para estes filtros"
+        description="Ajuste ou limpe os filtros."
+        icon="filter_alt_off"
+      >
+        <button mat-stroked-button type="button" (click)="clearFilters()">Limpar filtros</button>
+      </app-empty-state>
+    } @else {
+      <app-empty-state
+        title="Nenhuma notificação"
+        description="Você está em dia — novos alertas aparecerão aqui."
+        icon="notifications_none"
+      />
+    }
+  } @else {
+    <div class="list-meta">
+      <span class="ih-muted">
+        @if (loading()) {
+          Carregando…
+        } @else {
+          {{ total() }} {{ total() === 1 ? 'notificação' : 'notificações' }}
+        }
+      </span>
+    </div>
+
+    <div class="ih-table-wrap">
+      @if (loading()) {
+        <div class="skeleton-table">
+          <div class="skeleton-head">
+            <app-skeleton height="0.85rem" width="10%" />
+            <app-skeleton height="0.85rem" width="32%" />
+            <app-skeleton height="0.85rem" width="14%" />
+            <app-skeleton height="0.85rem" width="14%" />
+            <app-skeleton height="0.85rem" width="16%" />
+          </div>
+          @for (_ of skeletonRows; track $index) {
+            <div class="skeleton-row">
+              <app-skeleton height="1.1rem" width="10%" />
+              <app-skeleton height="1.1rem" width="34%" />
+              <app-skeleton height="1.1rem" width="14%" />
+              <app-skeleton height="1.1rem" width="14%" />
+              <app-skeleton height="1.1rem" width="16%" />
+            </div>
+          }
+        </div>
+      } @else {
+        <table mat-table [dataSource]="items()">
+          <ng-container matColumnDef="severity">
+            <th mat-header-cell *matHeaderCellDef>Severidade</th>
+            <td mat-cell *matCellDef="let row">
+              <app-status-badge [status]="row.severity" [label]="severityLabel(row.severity)" />
+            </td>
+          </ng-container>
+          <ng-container matColumnDef="title">
+            <th mat-header-cell *matHeaderCellDef>Título</th>
+            <td mat-cell *matCellDef="let row" [class.unread]="!row.readAt">
+              <strong>{{ row.title }}</strong>
+              @if (row.body) {
+                <div class="ih-muted body-preview">{{ row.body }}</div>
+              }
+            </td>
+          </ng-container>
+          <ng-container matColumnDef="category">
+            <th mat-header-cell *matHeaderCellDef>Categoria</th>
+            <td mat-cell *matCellDef="let row">{{ categoryLabel(row.category) }}</td>
+          </ng-container>
+          <ng-container matColumnDef="readAt">
+            <th mat-header-cell *matHeaderCellDef>Lida</th>
+            <td mat-cell *matCellDef="let row">
+              @if (row.readAt) {
+                <span class="ih-num" [title]="fullDate(row.readAt)">{{ row.readAt | relativeTime }}</span>
+              } @else {
+                <span class="ih-muted">Não lida</span>
+              }
+            </td>
+          </ng-container>
+          <ng-container matColumnDef="createdAt">
+            <th mat-header-cell *matHeaderCellDef>Criada</th>
+            <td mat-cell *matCellDef="let row">
+              <span class="ih-num" [title]="fullDate(row.createdAt)">{{ row.createdAt | relativeTime }}</span>
+            </td>
+          </ng-container>
+          <tr mat-header-row *matHeaderRowDef="columns"></tr>
+          <tr
+            mat-row
+            *matRowDef="let row; columns: columns"
+            class="clickable-row"
+            [class.row-unread]="!row.readAt"
+            (click)="open(row)"
+            (keydown.enter)="open(row)"
+            tabindex="0"
+            role="link"
+          ></tr>
+        </table>
+      }
+    </div>
+  }
+</section>

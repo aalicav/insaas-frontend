@@ -1,0 +1,107 @@
+<section class="ih-page">
+  <app-breadcrumb
+    [items]="[
+      { label: 'Inventário', link: '/inventory' },
+      { label: app()?.name || 'App' },
+    ]"
+  />
+
+  @if (loading()) {
+    <app-loading-state label="Carregando app…" />
+  } @else if (error()) {
+    <app-error-state
+      title="Não foi possível carregar o app"
+      [message]="error()!"
+      (retry)="reload()"
+    >
+      <a mat-stroked-button routerLink="/inventory">Voltar ao inventário</a>
+    </app-error-state>
+  } @else {
+    @if (app(); as current) {
+    <app-page-header eyebrow="Inventário" [title]="current.name">
+      <app-status-badge [status]="current.status" [label]="statusLabel(current.status)" />
+      <a mat-stroked-button routerLink="/inventory">Voltar</a>
+    </app-page-header>
+
+    @if (current.sourceApp) {
+      <div class="ih-card meta-card">
+        <div class="ih-label">Origem sincronizada</div>
+        <p>
+          <strong>{{ current.sourceApp.name || 'App sem nome' }}</strong>
+          · {{ providerLabel(current.sourceApp.provider) }}
+        </p>
+        <p class="ih-muted ih-mono">ID catálogo: {{ current.sourceApp.id }}</p>
+      </div>
+    }
+
+    <form class="ih-card ih-form-stack-wide" [formGroup]="form" (ngSubmit)="submit()">
+      <mat-form-field appearance="outline" class="full">
+        <mat-label>Nome</mat-label>
+        <input matInput formControlName="name" />
+        @if (form.controls.name.touched && form.controls.name.hasError('required')) {
+          <mat-error>Informe o nome</mat-error>
+        } @else if (form.controls.name.touched && form.controls.name.hasError('api')) {
+          <mat-error>{{ form.controls.name.getError('api') }}</mat-error>
+        }
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" class="full">
+        <mat-label>Status</mat-label>
+        <mat-select formControlName="status">
+          <mat-option value="unmanaged">Não gerenciado</mat-option>
+          <mat-option value="sanctioned">Autorizado</mat-option>
+        </mat-select>
+        <mat-hint>Apps autorizados exigem responsável definido</mat-hint>
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" class="full">
+        <mat-label>Criticidade</mat-label>
+        <mat-select formControlName="criticality">
+          <mat-option value="low">Baixa</mat-option>
+          <mat-option value="medium">Média</mat-option>
+          <mat-option value="high">Alta</mat-option>
+          <mat-option value="critical">Crítica</mat-option>
+        </mat-select>
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" class="full">
+        <mat-label>Descrição</mat-label>
+        <textarea matInput rows="3" formControlName="description"></textarea>
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" class="full">
+        <mat-label>Tags</mat-label>
+        <input matInput formControlName="tags" placeholder="produtividade, financeiro" />
+        <mat-hint>Separe por vírgula — substitui o conjunto atual</mat-hint>
+      </mat-form-field>
+
+      @if (current.ownerPerson || current.ownerUser) {
+        <div class="owner-block">
+          <div class="ih-label">Responsável</div>
+          <p>
+            {{
+              current.ownerPerson?.displayName ||
+                current.ownerUser?.name ||
+                current.ownerUser?.email ||
+                '—'
+            }}
+          </p>
+        </div>
+      }
+
+      @if (canWrite()) {
+        <button mat-flat-button color="primary" type="submit" [disabled]="saving()">
+          @if (saving()) {
+            <span class="ih-btn-spinner">
+              <mat-spinner diameter="18"></mat-spinner>
+              Salvando…
+            </span>
+          } @else {
+            Salvar alterações
+          }
+        </button>
+      }
+    </form>
+    }
+  }
+</section>

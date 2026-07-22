@@ -1,0 +1,135 @@
+<section class="ih-page">
+  @if (loading()) {
+    <app-loading-state label="Carregando execução…" />
+  } @else if (error()) {
+    <app-error-state
+      title="Não foi possível carregar a execução"
+      [message]="error()!"
+      (retry)="reload()"
+    >
+      <a mat-stroked-button routerLink="/workflows" [queryParams]="{ tab: 'runs' }">Voltar à lista</a>
+    </app-error-state>
+  } @else {
+    @if (run(); as r) {
+      <app-breadcrumb
+        [items]="[
+          { label: 'Workflows', link: '/workflows' },
+          { label: r.workflow.name },
+        ]"
+      />
+
+      <app-page-header
+        eyebrow="Execução"
+        [title]="r.workflow.name"
+        [subtitle]="r.person.displayName || r.person.email"
+        [hint]="HelpHints.workflowRun"
+      >
+        <a mat-stroked-button routerLink="/workflows" [queryParams]="{ tab: 'runs' }">Voltar</a>
+        <button mat-stroked-button type="button" (click)="openWorkflowEditor()">
+          Ver fluxo
+        </button>
+      </app-page-header>
+
+      <div class="ih-grid">
+        <article class="ih-card">
+          <div class="ih-label">Status</div>
+          <app-status-badge [status]="r.status" [label]="runStatusLabel(r.status)" />
+          @if (r.error) {
+            <p class="error-text">{{ r.error }}</p>
+          }
+        </article>
+        <article class="ih-card">
+          <div class="ih-label">Pessoa</div>
+          <p>{{ r.person.displayName || '—' }}</p>
+          <p class="ih-muted">{{ r.person.email }}</p>
+          <app-status-badge [status]="r.person.status" />
+        </article>
+        <article class="ih-card">
+          <div class="ih-label">Gatilho</div>
+          <p>{{ r.trigger }}</p>
+          <p class="ih-muted">
+            Início:
+            @if (r.startedAt) {
+              <span class="ih-num" [title]="fullDate(r.startedAt)">{{ r.startedAt | relativeTime }}</span>
+            } @else {
+              —
+            }
+          </p>
+        </article>
+      </div>
+
+      <div class="run-flow-layout">
+        <section class="ih-card run-flow-canvas">
+          <div class="ih-label">Fluxo da execução</div>
+          @if (flowGraph(); as graph) {
+            <app-workflow-flow-canvas
+              [nodes]="graph.nodes"
+              [edges]="graph.edges"
+              [selectedId]="selectedStepId()"
+              [editable]="false"
+              (nodeSelect)="selectNode($event)"
+            />
+          } @else {
+            <p class="ih-muted">Nenhuma etapa registrada.</p>
+          }
+        </section>
+
+        <aside class="ih-card run-step-panel">
+          <div class="ih-label">Detalhe da etapa</div>
+          @if (selectedStep(); as step) {
+            <div class="step-detail">
+              <strong>{{ step.stepKey }}</strong>
+              <span class="ih-muted">{{ stepTypeLabel(step.type) }}</span>
+              <app-status-badge [status]="step.status" [label]="stepStatusLabel(step.status)" />
+              @if (step.provider) {
+                <p class="ih-muted">Provider: {{ providerLabel(step.provider) }}</p>
+              }
+              @if (step.startedAt) {
+                <p class="ih-muted">Início: {{ step.startedAt | relativeTime }}</p>
+              }
+              @if (step.finishedAt) {
+                <p class="ih-muted">Fim: {{ step.finishedAt | relativeTime }}</p>
+              }
+              @if (step.error) {
+                <p class="error-text">{{ step.error }}</p>
+              }
+              @if (canActOnStep(step)) {
+                <div class="step-actions">
+                  <button
+                    mat-flat-button
+                    color="primary"
+                    type="button"
+                    [disabled]="actingStepId() === step.id"
+                    (click)="approveStep(step)"
+                  >
+                    @if (actingStepId() === step.id) {
+                      <span class="ih-btn-spinner">
+                        <mat-spinner diameter="18"></mat-spinner>
+                        Processando…
+                      </span>
+                    } @else {
+                      <mat-icon>check</mat-icon>
+                      Aprovar
+                    }
+                  </button>
+                  <button
+                    mat-stroked-button
+                    color="warn"
+                    type="button"
+                    [disabled]="actingStepId() === step.id"
+                    (click)="rejectStep(step)"
+                  >
+                    <mat-icon>close</mat-icon>
+                    Rejeitar
+                  </button>
+                </div>
+              }
+            </div>
+          } @else {
+            <p class="ih-muted">Clique em uma etapa do fluxo.</p>
+          }
+        </aside>
+      </div>
+    }
+  }
+</section>

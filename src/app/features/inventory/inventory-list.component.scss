@@ -1,0 +1,62 @@
+/* Filter layout comes from global `.filters` in styles.scss */
+
+.forms-grid {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+}
+
+.form-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+
+.form-panel h2 {
+  margin: 0;
+  font-size: var(--ih-text-lg);
+}
+
+.full {
+  width: 100%;
+}
+
+.list-meta {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.clickable-row {
+  cursor: pointer;
+}
+
+.clickable-row:focus-visible {
+  outline: 2px solid var(--ih-primary);
+  outline-offset: -2px;
+}
+
+.row-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.skeleton-table {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 1rem;
+}
+
+.skeleton-head,
+.skeleton-row {
+  display: grid;
+  grid-template-columns: 1.4fr 1fr 0.9fr 1fr 1.2fr;
+  gap: 1rem;
+  align-items: center;
+}
+
+.skeleton-head {
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid var(--ih-border);
+}

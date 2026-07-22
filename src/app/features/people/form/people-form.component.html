@@ -1,0 +1,107 @@
+<section class="ih-page">
+  <app-breadcrumb
+    [items]="[
+      { label: 'Pessoas', link: '/people' },
+      { label: isEdit ? 'Editar' : 'Nova pessoa' },
+    ]"
+  />
+
+  <app-page-header
+    eyebrow="Pessoas"
+    [title]="isEdit ? 'Editar pessoa' : 'Nova pessoa'"
+    subtitle="Time e centro de custo podem ser definidos aqui, mas o sync IdP/Oracle reaplica a partir da fonte."
+  >
+    <a mat-stroked-button routerLink="/people">Cancelar</a>
+  </app-page-header>
+
+  @if (loading()) {
+    <app-loading-state label="Carregando pessoa…" />
+  } @else if (loadError()) {
+    <app-error-state
+      title="Não foi possível carregar a pessoa"
+      [message]="loadError()!"
+      (retry)="loadPerson(personId()!)"
+    >
+      <a mat-stroked-button routerLink="/people">Voltar à lista</a>
+    </app-error-state>
+  } @else {
+    <form class="ih-card ih-form-stack-wide" [formGroup]="form" (ngSubmit)="submit()">
+      <mat-form-field appearance="outline" class="full">
+        <mat-label>E-mail</mat-label>
+        <input matInput formControlName="email" />
+        @if (form.controls.email.touched && form.controls.email.hasError('required')) {
+          <mat-error>Informe o e-mail</mat-error>
+        } @else if (form.controls.email.touched && form.controls.email.hasError('email')) {
+          <mat-error>E-mail inválido</mat-error>
+        } @else if (form.controls.email.touched && form.controls.email.hasError('api')) {
+          <mat-error>{{ form.controls.email.getError('api') }}</mat-error>
+        }
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" class="full">
+        <mat-label>Nome</mat-label>
+        <input matInput formControlName="displayName" />
+        @if (form.controls.displayName.touched && form.controls.displayName.hasError('api')) {
+          <mat-error>{{ form.controls.displayName.getError('api') }}</mat-error>
+        }
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" class="full">
+        <mat-label>Departamento</mat-label>
+        <input matInput formControlName="department" />
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" class="full">
+        <mat-label>Cargo</mat-label>
+        <input matInput formControlName="jobTitle" />
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" class="full">
+        <mat-label>Status</mat-label>
+        <mat-select formControlName="status">
+          <mat-option value="active">Ativo</mat-option>
+          <mat-option value="inactive">Inativo</mat-option>
+        </mat-select>
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" class="full">
+        <mat-label>Time</mat-label>
+        <mat-select formControlName="teamUnitId">
+          <mat-option value="">Nenhum</mat-option>
+          @for (team of teams(); track team.id) {
+            <mat-option [value]="team.id">{{ team.name }}</mat-option>
+          }
+        </mat-select>
+        <mat-hint>
+          Preenchido no sync a partir do departamento do IdP
+          <app-info-hint [text]="HelpHints.unassignedTeam" />
+        </mat-hint>
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" class="full">
+        <mat-label>Centro de custo</mat-label>
+        <mat-select formControlName="costCenterUnitId">
+          <mat-option value="">Nenhum</mat-option>
+          @for (cc of costCenters(); track cc.id) {
+            <mat-option [value]="cc.id">{{ cc.name }}{{ cc.code ? ' (' + cc.code + ')' : '' }}</mat-option>
+          }
+        </mat-select>
+        <mat-hint>
+          Preenchido no sync a partir do Oracle EBS
+          <app-info-hint [text]="HelpHints.costCenter" />
+        </mat-hint>
+      </mat-form-field>
+
+      <button mat-flat-button color="primary" [disabled]="saving()">
+        @if (saving()) {
+          <span class="ih-btn-spinner">
+            <mat-spinner diameter="18"></mat-spinner>
+            Salvando…
+          </span>
+        } @else {
+          Salvar
+        }
+      </button>
+    </form>
+  }
+</section>

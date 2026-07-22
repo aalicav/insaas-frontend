@@ -1,0 +1,335 @@
+.shell {
+  height: 100vh;
+  background: var(--ih-bg);
+  --ih-sidebar-width: 248px;
+}
+
+.shell.collapsed {
+  --ih-sidebar-width: 72px;
+}
+
+.sidenav {
+  width: var(--ih-sidebar-width);
+  background: var(--ih-sidebar-bg);
+  border-right: 1px solid var(--ih-sidebar-border);
+  color: var(--ih-sidebar-text);
+  overflow-x: hidden;
+  transition: width var(--ih-duration-base) var(--ih-ease);
+}
+
+/* Keep content margin in sync with sidebar width (Material often keeps the old margin). */
+.shell:not(.is-handset) ::ng-deep .mat-drawer-content {
+  margin-left: var(--ih-sidebar-width) !important;
+  transition: margin-left var(--ih-duration-base) var(--ih-ease);
+}
+
+.sidenav-inner {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 100%;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 1.35rem 1.1rem 1.1rem;
+}
+
+.brand-mark {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  display: grid;
+  place-items: center;
+  background: var(--ih-primary);
+  color: #fff;
+  font-weight: 700;
+  font-size: 0.8rem;
+  letter-spacing: -0.03em;
+  flex-shrink: 0;
+}
+
+.brand-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  min-width: 0;
+}
+
+.brand-copy strong {
+  font-family: var(--ih-font);
+  font-size: 0.88rem;
+  font-weight: 650;
+  letter-spacing: -0.02em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.brand-copy span {
+  font-size: 0.68rem;
+  color: var(--ih-sidebar-muted);
+  letter-spacing: 0.02em;
+}
+
+.nav {
+  flex: 1;
+  padding: 0.35rem 0.75rem;
+  overflow: auto;
+}
+
+.nav ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.nav-link {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  padding: 0.6rem 0.75rem;
+  border-radius: var(--ih-radius-sm);
+  color: var(--ih-sidebar-muted);
+  text-decoration: none;
+  font-size: 0.88rem;
+  font-weight: 500;
+  transition:
+    color var(--ih-duration-fast) var(--ih-ease),
+    background var(--ih-duration-fast) var(--ih-ease);
+}
+
+.nav-link:hover {
+  color: var(--ih-sidebar-text);
+  background: color-mix(in srgb, #fff 4%, transparent);
+  text-decoration: none;
+}
+
+.nav-link mat-icon {
+  font-size: 1.2rem;
+  width: 1.2rem;
+  height: 1.2rem;
+  color: inherit;
+}
+
+.nav-link.active {
+  background: var(--ih-primary);
+  color: #fff;
+}
+
+.nav-link.active:hover {
+  background: var(--ih-primary-light);
+  color: #fff;
+}
+
+.sidenav-footer {
+  padding: 0.75rem;
+  margin-top: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.plan-card {
+  background: var(--ih-sidebar-bg-elevated);
+  border: 1px solid var(--ih-sidebar-border);
+  border-radius: var(--ih-radius);
+  padding: 0.85rem;
+}
+
+.plan-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.plan-name {
+  font-size: 0.85rem;
+  font-weight: 650;
+}
+
+.plan-badge {
+  font-size: 0.65rem;
+  font-weight: 650;
+  color: #6ee7b7;
+  background: color-mix(in srgb, #34d399 16%, transparent);
+  border-radius: 999px;
+  padding: 0.15rem 0.45rem;
+}
+
+.plan-meta {
+  margin: 0.45rem 0 0.55rem;
+  font-size: 0.72rem;
+  color: var(--ih-sidebar-muted);
+}
+
+.plan-bar {
+  height: 4px;
+  border-radius: 999px;
+  background: color-mix(in srgb, #fff 8%, transparent);
+  overflow: hidden;
+}
+
+.plan-bar span {
+  display: block;
+  height: 100%;
+  background: var(--ih-primary-light);
+  border-radius: 999px;
+}
+
+.plan-link {
+  display: inline-block;
+  margin-top: 0.65rem;
+  font-size: 0.75rem;
+  color: #e7a0b0;
+  text-decoration: none;
+}
+
+.plan-link:hover {
+  text-decoration: underline;
+}
+
+.sidenav-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0 0.25rem;
+}
+
+.copy {
+  font-size: 0.65rem;
+  color: var(--ih-sidebar-muted);
+}
+
+.collapse-btn {
+  border: 0;
+  background: transparent;
+  color: var(--ih-sidebar-muted);
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  padding: 0.25rem;
+  border-radius: var(--ih-radius-sm);
+}
+
+.collapse-btn:hover {
+  color: var(--ih-sidebar-text);
+  background: color-mix(in srgb, #fff 6%, transparent);
+}
+
+.topbar {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: color-mix(in srgb, var(--ih-bg) 90%, transparent);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--ih-border);
+  gap: 0.5rem;
+  min-height: var(--ih-topbar-height);
+  padding-inline: 1rem;
+}
+
+.spacer {
+  flex: 1;
+}
+
+.org-field {
+  width: min(220px, 42vw);
+}
+
+.org-field ::ng-deep .mat-mdc-form-field-subscript-wrapper {
+  display: none;
+}
+
+.icon-btn {
+  color: var(--ih-text-secondary);
+}
+
+.notify {
+  position: relative;
+}
+
+.notify-dot {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--ih-danger);
+  border: 1.5px solid var(--ih-bg);
+}
+
+.quick-btn {
+  margin-left: 0.25rem;
+}
+
+.user-btn {
+  margin-left: 0.15rem;
+}
+
+.user-initial {
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  display: inline-grid;
+  place-items: center;
+  background: var(--ih-primary-muted);
+  color: var(--ih-primary);
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.content {
+  min-height: calc(100vh - var(--ih-topbar-height));
+  position: relative;
+  background: var(--ih-bg);
+}
+
+.content-switching {
+  pointer-events: none;
+}
+
+.switch-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.85rem;
+  background: color-mix(in srgb, var(--ih-bg) 78%, transparent);
+  backdrop-filter: blur(4px);
+}
+
+.shell.collapsed .nav-link {
+  justify-content: center;
+  padding-inline: 0.65rem;
+}
+
+.shell.collapsed .brand {
+  justify-content: center;
+  padding-inline: 0.75rem;
+}
+
+.shell.collapsed .sidenav-meta {
+  justify-content: center;
+}
+
+.shell.collapsed .nav {
+  padding-inline: 0.5rem;
+}
+
+@media (max-width: 720px) {
+  .org-field {
+    width: min(160px, 40vw);
+  }
+}

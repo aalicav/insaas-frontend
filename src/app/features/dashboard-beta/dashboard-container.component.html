@@ -1,0 +1,56 @@
+<section class="dashboard-beta ih-page">
+  <app-page-header
+    eyebrow="Beta"
+    title="Dashboard espacial"
+    subtitle="Arraste e redimensione os blocos. Alterações são salvas automaticamente."
+  >
+    @if (saving()) {
+      <span class="save-pill ih-muted">
+        <mat-spinner diameter="16"></mat-spinner>
+        Salvando…
+      </span>
+    }
+    <a mat-stroked-button routerLink="/dashboard">
+      <mat-icon>dashboard</mat-icon>
+      Voltar ao dashboard
+    </a>
+    <button mat-stroked-button type="button" (click)="resetLayout()" [disabled]="loading()">
+      <mat-icon>restart_alt</mat-icon>
+      Restaurar layout
+    </button>
+  </app-page-header>
+
+  @if (loading()) {
+    <div class="boot">
+      <mat-spinner diameter="40"></mat-spinner>
+      <p class="ih-muted">Carregando layout…</p>
+    </div>
+  } @else if (error()) {
+    <app-error-state
+      title="Não foi possível carregar o dashboard"
+      [message]="error()!"
+      (retry)="reload()"
+    />
+  } @else {
+    <div class="grid-shell">
+      <gridster [options]="options">
+        @for (item of items(); track trackItem($index, item)) {
+          <gridster-item [item]="item">
+            <div class="grid-item-host">
+              @if (resolveComponent(item.componentType); as cmp) {
+                <ng-container
+                  *ngComponentOutlet="cmp; inputs: { dataPayload: item.dataPayload }"
+                />
+              } @else {
+                <div class="missing">
+                  <div class="ih-label">Widget desconhecido</div>
+                  <p class="ih-muted">{{ item.componentType }}</p>
+                </div>
+              }
+            </div>
+          </gridster-item>
+        }
+      </gridster>
+    </div>
+  }
+</section>

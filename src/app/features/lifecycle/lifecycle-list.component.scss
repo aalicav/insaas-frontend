@@ -1,0 +1,35 @@
+/* Filter layout comes from global `.filters` in styles.scss */
+
+.list-meta {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.clickable-row {
+  cursor: pointer;
+}
+
+.clickable-row:focus-visible {
+  outline: 2px solid var(--ih-primary);
+  outline-offset: -2px;
+}
+
+.skeleton-table {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 1rem;
+}
+
+.skeleton-head,
+.skeleton-row {
+  display: grid;
+  grid-template-columns: 1.2fr 1fr 1.4fr 1fr 0.9fr;
+  gap: 1rem;
+  align-items: center;
+}
+
+.skeleton-head {
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid var(--ih-border);
+}

@@ -1,0 +1,129 @@
+<section class="ih-page">
+  <app-page-header
+    eyebrow="Compliance"
+    title="Auditoria"
+    subtitle="Trilha de ações realizadas na organização."
+  />
+
+  <form class="ih-card filters" [formGroup]="filters" (ngSubmit)="reload()">
+    <mat-form-field appearance="outline">
+      <mat-label>De</mat-label>
+      <input matInput type="datetime-local" formControlName="from" />
+    </mat-form-field>
+    <mat-form-field appearance="outline">
+      <mat-label>Até</mat-label>
+      <input matInput type="datetime-local" formControlName="to" />
+    </mat-form-field>
+    <mat-form-field appearance="outline">
+      <mat-label>Ação</mat-label>
+      <input matInput formControlName="action" placeholder="user.login" />
+    </mat-form-field>
+    <mat-form-field appearance="outline">
+      <mat-label>Tipo de recurso</mat-label>
+      <input matInput formControlName="resourceType" placeholder="person" />
+    </mat-form-field>
+    <div class="filter-actions">
+      <button mat-flat-button color="primary" type="submit">Filtrar</button>
+      @if (hasActiveFilters()) {
+        <button mat-button type="button" (click)="clearFilters()">Limpar</button>
+      }
+    </div>
+  </form>
+
+  @if (error()) {
+    <app-error-state
+      title="Não foi possível carregar a auditoria"
+      [message]="error()!"
+      (retry)="reload()"
+    />
+  } @else if (!loading() && !items().length) {
+    @if (hasActiveFilters()) {
+      <app-empty-state
+        title="Nenhum resultado para estes filtros"
+        description="Ajuste ou limpe os filtros."
+        icon="filter_alt_off"
+      >
+        <button mat-stroked-button type="button" (click)="clearFilters()">Limpar filtros</button>
+      </app-empty-state>
+    } @else {
+      <app-empty-state
+        title="Nenhum evento registrado"
+        description="Ações auditáveis aparecerão aqui conforme forem executadas."
+        icon="history"
+      />
+    }
+  } @else {
+    <div class="list-meta">
+      <span class="ih-muted">
+        @if (loading()) {
+          Carregando…
+        } @else {
+          {{ total() }} {{ total() === 1 ? 'evento' : 'eventos' }}
+        }
+      </span>
+    </div>
+
+    <div class="ih-table-wrap">
+      @if (loading()) {
+        <div class="skeleton-table">
+          <div class="skeleton-head">
+            <app-skeleton height="0.85rem" width="16%" />
+            <app-skeleton height="0.85rem" width="22%" />
+            <app-skeleton height="0.85rem" width="20%" />
+            <app-skeleton height="0.85rem" width="14%" />
+            <app-skeleton height="0.85rem" width="12%" />
+          </div>
+          @for (_ of skeletonRows; track $index) {
+            <div class="skeleton-row">
+              <app-skeleton height="1.1rem" width="16%" />
+              <app-skeleton height="1.1rem" width="24%" />
+              <app-skeleton height="1.1rem" width="20%" />
+              <app-skeleton height="1.1rem" width="14%" />
+              <app-skeleton height="1.1rem" width="12%" />
+            </div>
+          }
+        </div>
+      } @else {
+        <table mat-table [dataSource]="items()">
+          <ng-container matColumnDef="createdAt">
+            <th mat-header-cell *matHeaderCellDef>Data</th>
+            <td mat-cell *matCellDef="let row">
+              <span class="ih-num" [title]="fullDate(row.createdAt)">
+                {{ row.createdAt | relativeTime }}
+              </span>
+            </td>
+          </ng-container>
+          <ng-container matColumnDef="action">
+            <th mat-header-cell *matHeaderCellDef>Ação</th>
+            <td mat-cell *matCellDef="let row"><code>{{ row.action }}</code></td>
+          </ng-container>
+          <ng-container matColumnDef="actorEmail">
+            <th mat-header-cell *matHeaderCellDef>Ator</th>
+            <td mat-cell *matCellDef="let row">{{ row.actorEmail || '—' }}</td>
+          </ng-container>
+          <ng-container matColumnDef="resourceType">
+            <th mat-header-cell *matHeaderCellDef>Recurso</th>
+            <td mat-cell *matCellDef="let row">
+              @if (row.resourceType) {
+                {{ row.resourceType }}
+                @if (row.resourceId) {
+                  <span class="ih-muted"> · {{ row.resourceId }}</span>
+                }
+              } @else {
+                —
+              }
+            </td>
+          </ng-container>
+          <ng-container matColumnDef="outcome">
+            <th mat-header-cell *matHeaderCellDef>Resultado</th>
+            <td mat-cell *matCellDef="let row">
+              <app-status-badge [status]="row.outcome" [label]="outcomeLabel(row.outcome)" />
+            </td>
+          </ng-container>
+          <tr mat-header-row *matHeaderRowDef="columns"></tr>
+          <tr mat-row *matRowDef="let row; columns: columns"></tr>
+        </table>
+      }
+    </div>
+  }
+</section>

@@ -1,0 +1,80 @@
+/* Route-scoped MDC descharacterization for incentiva / spatial UI */
+:host {
+  display: block;
+  --mdc-shape-medium: 0px;
+  --mdc-shape-small: 0px;
+  --mdc-elevated-card-container-elevation: 0;
+  --mdc-elevated-card-container-shape: 0;
+  --mat-card-elevated-container-shape: 0;
+  --mat-card-outlined-container-shape: 0;
+}
+
+.dashboard-beta {
+  max-width: none;
+  height: calc(100vh - var(--ih-topbar-height) - 1rem);
+  min-height: 28rem;
+}
+
+.save-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-size: 0.85rem;
+}
+
+.boot {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.85rem;
+  min-height: 16rem;
+}
+
+.grid-shell {
+  flex: 1;
+  min-height: 0;
+  height: calc(100vh - var(--ih-topbar-height) - 8rem);
+  border: 1px solid var(--ih-border);
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--ih-bg-tertiary) 55%, transparent), transparent),
+    var(--ih-bg);
+}
+
+gridster {
+  background: transparent;
+  height: 100%;
+}
+
+::ng-deep gridster .gridster-row,
+::ng-deep gridster .gridster-column {
+  border-color: color-mix(in srgb, var(--ih-border) 70%, transparent) !important;
+}
+
+::ng-deep gridster-item {
+  background: transparent !important;
+  box-shadow: none !important;
+  border-radius: 0 !important;
+  overflow: hidden;
+}
+
+.grid-item-host {
+  height: 100%;
+  width: 100%;
+  min-height: 0;
+}
+
+.missing {
+  height: 100%;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 1rem;
+  border: 1px dashed var(--ih-border-strong);
+  background: var(--ih-bg-secondary);
+}
+
+::ng-deep .gridster-item-resizable-handler {
+  background: color-mix(in srgb, var(--ih-primary) 35%, transparent);
+}

@@ -1,0 +1,221 @@
+<section class="ih-page">
+  @if (loading()) {
+    <app-loading-state label="Carregando provider…" />
+  } @else if (error()) {
+    <app-error-state
+      title="Não foi possível carregar o provider"
+      [message]="error()!"
+      (retry)="reload()"
+    >
+      <a mat-stroked-button routerLink="/integrations">Voltar ao catálogo</a>
+    </app-error-state>
+  } @else {
+    @if (provider(); as p) {
+      <app-breadcrumb
+        [items]="[
+          { label: 'Integrações', link: '/integrations' },
+          { label: p.displayName || providerLabel(p.key) },
+        ]"
+      />
+
+      <app-page-header
+        [eyebrow]="categoryLabel(p.category)"
+        [title]="p.displayName || providerLabel(p.key)"
+        [subtitle]="providerBlurb(p.key, p.displayName)"
+      >
+        <a mat-stroked-button routerLink="/integrations">Catálogo</a>
+        @if (canConnect()) {
+          <a
+            mat-flat-button
+            color="primary"
+            [routerLink]="['/connections/new']"
+            [queryParams]="{ provider: p.key }"
+          >
+            <mat-icon>add_link</mat-icon>
+            Conectar
+          </a>
+        }
+      </app-page-header>
+
+      <div class="hero-row">
+        <span class="tile" aria-hidden="true">
+          <app-provider-icon [provider]="p.key" size="52px" />
+        </span>
+        <div class="hero-meta">
+          <span class="ih-label">Status no ambiente</span>
+          @if (comingSoon()) {
+            <strong class="soon">Ainda sem adapter neste ambiente</strong>
+          } @else if (connections().length) {
+            <strong>{{ connections().length }} conexão(ões) na organização</strong>
+          } @else {
+            <strong>Disponível para conectar</strong>
+          }
+        </div>
+      </div>
+
+      <div class="detail-grid">
+        <article class="ih-card">
+          <div class="ih-label">Autenticação</div>
+          @if (authTypes().length) {
+            <ul class="plain-list">
+              @for (type of authTypes(); track type) {
+                <li>{{ authTypeLabel(type) }}</li>
+              }
+            </ul>
+            @if (p.auth?.defaultType) {
+              <p class="ih-muted">Padrão: {{ authTypeLabel(p.auth?.defaultType) }}</p>
+            }
+          } @else {
+            <p class="ih-muted">Tipos de autenticação não informados.</p>
+          }
+        </article>
+
+        <article class="ih-card">
+          <div class="ih-label">Capacidades</div>
+          @if (capabilityEntries().length) {
+            <ul class="plain-list">
+              @for (cap of capabilityEntries(); track cap.key) {
+                <li>{{ cap.label }}</li>
+              }
+            </ul>
+          } @else {
+            <p class="ih-muted">Sem capacidades declaradas.</p>
+          }
+        </article>
+      </div>
+
+      @if (connections().length) {
+        <section class="ih-card">
+          <div class="ih-label">Conexões desta organização</div>
+          <ul class="conn-list">
+            @for (conn of connections(); track conn.id) {
+              <li>
+                <div>
+                  <strong>{{ conn.displayName || providerLabel(conn.provider) }}</strong>
+                  <app-status-badge [status]="conn.status" />
+                  <em>
+                    @if (conn.lastSyncedAt) {
+                      Sync
+                      <span [title]="fullDate(conn.lastSyncedAt)">{{
+                        conn.lastSyncedAt | relativeTime
+                      }}</span>
+                    } @else {
+                      Nunca sincronizado
+                    }
+                  </em>
+                </div>
+                <a mat-stroked-button [routerLink]="['/connections', conn.id]">Abrir</a>
+              </li>
+            }
+          </ul>
+        </section>
+      }
+
+      @if (canReadCatalog()) {
+        <section class="ih-card">
+          <div class="ih-label">
+            Licenças sincronizadas
+            @if (!licensesLoading()) {
+              <span class="ih-muted">({{ licenses().length }})</span>
+            }
+          </div>
+          @if (licensesLoading()) {
+            <p class="ih-muted">Carregando licenças…</p>
+          } @else if (licensesError()) {
+            <app-error-state
+              [inline]="true"
+              title="Não foi possível carregar as licenças"
+              [message]="licensesError()!"
+              (retry)="loadLicenses(p.key)"
+            />
+          } @else if (!licenses().length) {
+            <p class="ih-muted">
+              Nenhuma licença sincronizada para este provider. Conecte e rode o sync para popular
+              o catálogo.
+            </p>
+          } @else {
+            <div class="ih-table-wrap licenses-wrap">
+              <table mat-table [dataSource]="licenses()">
+                <ng-container matColumnDef="skuName">
+                  <th mat-header-cell *matHeaderCellDef>Licença</th>
+                  <td mat-cell *matCellDef="let row">{{ row.skuName || row.skuId || '—' }}</td>
+                </ng-container>
+                <ng-container matColumnDef="skuId">
+                  <th mat-header-cell *matHeaderCellDef>SKU</th>
+                  <td mat-cell *matCellDef="let row">
+                    <span class="ih-mono">{{ row.skuId || '—' }}</span>
+                  </td>
+                </ng-container>
+                <ng-container matColumnDef="seats">
+                  <th mat-header-cell *matHeaderCellDef>Assentos</th>
+                  <td mat-cell *matCellDef="let row">
+                    @if (row.seats != null) {
+                      <span class="ih-num">{{ row.seats }}</span>
+                    } @else {
+                      <span class="ih-muted">—</span>
+                    }
+                  </td>
+                </ng-container>
+                <ng-container matColumnDef="assignedCount">
+                  <th mat-header-cell *matHeaderCellDef>Atribuídas</th>
+                  <td mat-cell *matCellDef="let row">
+                    @if (row.assignedCount != null) {
+                      <span class="ih-num">{{ row.assignedCount }}</span>
+                    } @else {
+                      <span class="ih-muted">—</span>
+                    }
+                  </td>
+                </ng-container>
+                <ng-container matColumnDef="externalId">
+                  <th mat-header-cell *matHeaderCellDef>ID externo</th>
+                  <td mat-cell *matCellDef="let row">
+                    <span class="ih-mono">{{ row.externalId }}</span>
+                  </td>
+                </ng-container>
+                <tr mat-header-row *matHeaderRowDef="licenseColumns"></tr>
+                <tr mat-row *matRowDef="let row; columns: licenseColumns"></tr>
+              </table>
+            </div>
+          }
+        </section>
+      }
+
+      @if (p.setupGuide) {
+        <mat-expansion-panel class="tech-panel">
+          <mat-expansion-panel-header>
+            <mat-panel-title>Guia de configuração</mat-panel-title>
+          </mat-expansion-panel-header>
+          <pre>{{ p.setupGuide | json }}</pre>
+        </mat-expansion-panel>
+      }
+
+      @if (canManage()) {
+        <form class="ih-card" [formGroup]="adminForm" (ngSubmit)="saveAdmin()">
+          <div class="ih-label">Administração do catálogo</div>
+          <div class="admin-grid">
+            <mat-form-field appearance="outline">
+              <mat-label>Nome de exibição</mat-label>
+              <input matInput formControlName="displayName" />
+            </mat-form-field>
+            <mat-form-field appearance="outline">
+              <mat-label>Ordem</mat-label>
+              <input matInput type="number" formControlName="sortOrder" />
+              <mat-hint>
+                Ordem no catálogo
+                <app-info-hint [text]="HelpHints.sortOrder" />
+              </mat-hint>
+            </mat-form-field>
+            <mat-slide-toggle formControlName="enabled">Habilitado</mat-slide-toggle>
+            <mat-slide-toggle formControlName="connectable">
+              Conectável
+              <app-info-hint [text]="HelpHints.connectableOnly" />
+            </mat-slide-toggle>
+            <button mat-flat-button color="primary" type="submit" [disabled]="savingAdmin()">
+              {{ savingAdmin() ? 'Salvando…' : 'Salvar' }}
+            </button>
+          </div>
+        </form>
+      }
+    }
+  }
+</section>

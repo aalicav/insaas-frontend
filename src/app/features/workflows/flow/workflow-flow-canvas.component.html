@@ -1,0 +1,203 @@
+<div class="wf-canvas-host" [class.wf-canvas-host--compact]="compact()">
+  <div class="wf-canvas-tools">
+    <button
+      mat-stroked-button
+      type="button"
+      matTooltip="Reorganizar nós em ordem (esquerda → direita)"
+      (click)="organize()"
+    >
+      <mat-icon>auto_fix_pack_2</mat-icon>
+      Organizar
+    </button>
+    <button
+      mat-stroked-button
+      type="button"
+      matTooltip="Ajustar zoom ao conteúdo"
+      (click)="fit()"
+    >
+      <mat-icon>fit_screen</mat-icon>
+      Enquadrar
+    </button>
+  </div>
+
+  <mat-menu #insertMenu="matMenu" class="wf-insert-menu">
+    @for (item of stepTypes; track item.type) {
+      <button
+        type="button"
+        mat-menu-item
+        (click)="confirmInsertBetween(item.type, $event)"
+      >
+        <mat-icon [style.color]="item.accent">{{ item.icon }}</mat-icon>
+        <span>{{ item.label }}</span>
+      </button>
+    }
+  </mat-menu>
+
+  @for (_ of [flowEpoch()]; track _) {
+    <f-flow
+      class="wf-flow"
+      [class.wf-flow--compact]="compact()"
+      [class.wf-flow--readonly]="!editable()"
+      fDraggable
+      (fLoaded)="onNodesRendered()"
+      (fMoveNodes)="onMoveNodes($event)"
+      (fCreateConnection)="onCreateConnection($event)"
+      (fSelectionChange)="onSelectionChange($event)"
+    >
+      <f-background>
+        <f-circle-pattern />
+      </f-background>
+
+      <f-canvas fZoom>
+        <f-connection-for-create
+          [fType]="connectionType"
+          [fBehavior]="connectionBehavior"
+          [fOffset]="8"
+        >
+          <svg
+            viewBox="0 0 10 10"
+            fMarker
+            [type]="markerEnd"
+            [width]="14"
+            [height]="14"
+            [refX]="9"
+            [refY]="5"
+            markerUnits="userSpaceOnUse"
+          >
+            <path d="M0,0 L10,5 L0,10 z" fill="#6b2030" stroke="none" />
+          </svg>
+        </f-connection-for-create>
+
+        <ng-container ngProjectAs="[fConnections]">
+          @for (edge of edges(); track edge.id) {
+            <f-connection
+              [fConnectionId]="edge.id"
+              [fSourceId]="edge.sourceId"
+              [fTargetId]="edge.targetId"
+              [fType]="connectionType"
+              [fBehavior]="connectionBehavior"
+              [fSourceSide]="sourceSide"
+              [fTargetSide]="targetSide"
+              [fOffset]="8"
+              [fSelectionDisabled]="!editable()"
+              fReassignDisabled
+            >
+              <svg
+                viewBox="0 0 10 10"
+                fMarker
+                [type]="markerEnd"
+                [width]="14"
+                [height]="14"
+                [refX]="9"
+                [refY]="5"
+                markerUnits="userSpaceOnUse"
+              >
+                <path d="M0,0 L10,5 L0,10 z" fill="#6b2030" stroke="none" />
+              </svg>
+              <svg
+                viewBox="0 0 10 10"
+                fMarker
+                [type]="markerSelectedEnd"
+                [width]="14"
+                [height]="14"
+                [refX]="9"
+                [refY]="5"
+                markerUnits="userSpaceOnUse"
+              >
+                <path d="M0,0 L10,5 L0,10 z" fill="#6b2030" stroke="none" />
+              </svg>
+              @if (editable() && selectedEdgeId() === edge.id) {
+                <button
+                  type="button"
+                  class="wf-edge-plus"
+                  fConnectionContent
+                  [position]="0.5"
+                  [offset]="0"
+                  [matMenuTriggerFor]="insertMenu"
+                  matTooltip="Inserir etapa entre os nós"
+                  (menuOpened)="pendingInsertAfter.set(edge.sourceNodeId)"
+                  (click)="$event.stopPropagation()"
+                  (mousedown)="$event.stopPropagation()"
+                >
+                  <mat-icon>add</mat-icon>
+                </button>
+              }
+            </f-connection>
+          }
+        </ng-container>
+
+        <ng-container ngProjectAs="[fNodes]">
+          @for (node of viewNodes(); track node.id) {
+            <div
+              class="wf-node"
+              [class.wf-node--trigger]="node.kind === 'trigger'"
+              [class.wf-node--selected]="selectedId() === node.id"
+              [class.is-success]="node.status === 'success' || node.status === 'succeeded'"
+              [class.is-failed]="node.status === 'failed'"
+              [class.is-running]="node.status === 'running'"
+              [class.is-waiting]="node.status === 'waiting' || node.status === 'waiting_approval'"
+              [class.is-pending]="node.status === 'pending' || node.status === 'queued' || node.status === 'skipped'"
+              [class.wf-node--warning]="!!node.configWarning"
+              fNode
+              [fNodeId]="node.id"
+              [fNodePosition]="node.position"
+              [fNodeSelectionDisabled]="!editable()"
+              [fNodeDraggingDisabled]="!editable()"
+              (click)="selectNode(node.id, $event)"
+            >
+              @if (node.configWarning) {
+                <span
+                  class="wf-node__warn"
+                  [matTooltip]="node.configWarning"
+                  matTooltipPosition="above"
+                >
+                  <mat-icon>warning</mat-icon>
+                </span>
+              }
+              @if (node.kind === 'step') {
+                <div
+                  class="wf-connector wf-connector--in"
+                  fConnector
+                  fConnectorType="target"
+                  [fConnectorId]="connectorInId(node.id)"
+                  fConnectorConnectableSide="left"
+                  [fConnectorDisabled]="!editable()"
+                  [fConnectorMultiple]="true"
+                  fDragBlocker
+                ></div>
+              }
+
+              <div class="wf-node__body" fDragHandle>
+                <div class="wf-node__icon" [style.--node-accent]="metaFor(node).accent">
+                  <mat-icon>{{ metaFor(node).icon }}</mat-icon>
+                </div>
+                <div class="wf-node__text">
+                  <span class="wf-node__kind">{{ node.kind === 'trigger' ? 'Trigger' : 'Step' }}</span>
+                  <strong class="wf-node__title">{{ metaFor(node).label }}</strong>
+                  <span class="wf-node__sub">{{ metaFor(node).subtitle }}</span>
+                  @if (node.status) {
+                    <span class="wf-node__status">{{ node.status }}</span>
+                  }
+                  @if (node.error) {
+                    <span class="wf-node__error">{{ node.error }}</span>
+                  }
+                </div>
+              </div>
+
+              <div
+                class="wf-connector wf-connector--out"
+                fConnector
+                fConnectorType="source"
+                [fConnectorId]="connectorOutId(node.id)"
+                fConnectorConnectableSide="right"
+                [fConnectorDisabled]="!editable()"
+                [fConnectorMultiple]="true"
+                fDragBlocker
+              ></div>
+            </div>
+          }
+        </ng-container>
+      </f-canvas>
+    </f-flow>
+  }
+</div>

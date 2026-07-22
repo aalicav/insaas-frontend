@@ -1,0 +1,375 @@
+<section class="wf-editor">
+  @if (loading()) {
+    <app-loading-state label="Carregando editor de fluxo…" />
+  } @else if (error()) {
+    <app-error-state
+      title="Não foi possível abrir o editor"
+      [message]="error()!"
+    >
+      <button mat-stroked-button type="button" (click)="close()">Fechar</button>
+    </app-error-state>
+  } @else {
+    <app-page-header
+      eyebrow="Editor de fluxo"
+      [title]="pageTitle()"
+      subtitle="Clique em um nó para configurar · Adicionar etapa abre as opções disponíveis."
+      [hint]="HelpHints.workflowTrigger"
+    >
+      <button mat-stroked-button type="button" (click)="close()">
+        <mat-icon>close</mat-icon>
+        Fechar
+      </button>
+      <button
+        mat-stroked-button
+        type="button"
+        color="primary"
+        (click)="togglePalette()"
+      >
+        <mat-icon>add</mat-icon>
+        Adicionar etapa
+      </button>
+      <button mat-flat-button color="primary" type="button" [disabled]="saving()" (click)="save()">
+        @if (saving()) {
+          <span class="ih-btn-spinner">
+            <mat-spinner diameter="18"></mat-spinner>
+            Salvando…
+          </span>
+        } @else {
+          <ng-container>
+            <mat-icon>save</mat-icon>
+            Salvar fluxo
+          </ng-container>
+        }
+      </button>
+    </app-page-header>
+
+    <div class="wf-editor__meta ih-card">
+      <form class="meta-grid" [formGroup]="metaForm">
+        <mat-form-field appearance="outline">
+          <mat-label>Nome</mat-label>
+          <input matInput formControlName="name" />
+        </mat-form-field>
+        @if (isNew() && templates().length) {
+          <mat-form-field appearance="outline">
+            <mat-label>Partir de modelo</mat-label>
+            <mat-select formControlName="templateKey" (selectionChange)="applyTemplate($event.value)">
+              <mat-option value="">Em branco</mat-option>
+              @for (tpl of templates(); track tpl.key) {
+                <mat-option [value]="tpl.key">{{ tpl.name }}</mat-option>
+              }
+            </mat-select>
+          </mat-form-field>
+        }
+        <mat-checkbox formControlName="enabled">Ativo</mat-checkbox>
+      </form>
+    </div>
+
+    <div class="wf-editor__workspace">
+      <div class="wf-canvas-wrap">
+        <p class="canvas-hint ih-muted">
+          Clique na <strong>linha</strong> para o <strong>+</strong> · clique no nó para
+          configurar · <strong>Organizar</strong> alinha
+        </p>
+        <app-workflow-flow-canvas
+          [nodes]="graph().nodes"
+          [edges]="graph().edges"
+          [selectedId]="selectedNodeId()"
+          [editable]="true"
+          (nodeSelect)="selectNode($event)"
+          (positionsChange)="onPositionsChange($event)"
+          (connectNodes)="onConnectNodes($event)"
+          (insertBetween)="insertStepBetween($event)"
+        />
+      </div>
+
+      @if (paletteOpen()) {
+        <button
+          type="button"
+          class="wf-palette-backdrop"
+          aria-label="Fechar opções de etapa"
+          (click)="closePalette()"
+        ></button>
+        <aside class="wf-palette-float ih-card" role="dialog" aria-label="Adicionar etapa">
+          <div class="panel-head">
+            <strong>Adicionar etapa</strong>
+            <button mat-icon-button type="button" aria-label="Fechar" (click)="closePalette()">
+              <mat-icon>close</mat-icon>
+            </button>
+          </div>
+          <p class="ih-muted palette-hint">Escolha o tipo — a etapa entra no final do fluxo.</p>
+          <div class="palette-list">
+            @for (item of stepTypes; track item.type) {
+              <button
+                type="button"
+                class="palette-item"
+                [style.--accent]="item.accent"
+                (click)="addStep(item.type)"
+                [matTooltip]="item.description"
+              >
+                <span class="palette-item__icon">
+                  <mat-icon>{{ item.icon }}</mat-icon>
+                </span>
+                <span class="palette-item__label">{{ item.label }}</span>
+              </button>
+            }
+          </div>
+        </aside>
+      }
+    </div>
+  }
+</section>
+
+<ng-template #configDialog>
+  <h2 mat-dialog-title>
+    @if (selectedNodeId() === 'trigger') {
+      Configurar gatilho
+    } @else {
+      @if (selectedStep(); as step) {
+        {{ stepMeta(step.type).label }}
+      } @else {
+        Configuração
+      }
+    }
+  </h2>
+
+  <mat-dialog-content class="wf-config-dialog__content">
+    @if (selectedNodeId() === 'trigger') {
+      <div class="inspector-body">
+        <div class="inspector-badge">Trigger</div>
+        <mat-form-field appearance="outline" class="full">
+          <mat-label>Tipo de gatilho</mat-label>
+          <mat-select [formControl]="triggerTypeControl">
+            @for (t of triggerTypes(); track t.type) {
+              <mat-option [value]="t.type">{{ t.displayName }}</mat-option>
+            }
+          </mat-select>
+        </mat-form-field>
+        @if (selectedTrigger()?.description) {
+          <p class="ih-muted">{{ selectedTrigger()?.description }}</p>
+        }
+        @for (field of selectedTrigger()?.configFields ?? []; track field.name) {
+          <mat-form-field appearance="outline" class="full">
+            <mat-label>{{ field.label }}</mat-label>
+            @if (field.type === 'boolean') {
+              <mat-select [formControl]="triggerConfigControls()[field.name]">
+                <mat-option value="">—</mat-option>
+                <mat-option value="true">Sim</mat-option>
+                <mat-option value="false">Não</mat-option>
+              </mat-select>
+            } @else if (field.type === 'select') {
+              <mat-select [formControl]="triggerConfigControls()[field.name]">
+                <mat-option value="">—</mat-option>
+                @for (opt of field.options ?? []; track opt.value) {
+                  <mat-option [value]="opt.value">{{ opt.label }}</mat-option>
+                }
+              </mat-select>
+            } @else {
+              <input
+                matInput
+                [type]="field.secret ? 'password' : 'text'"
+                [formControl]="triggerConfigControls()[field.name]"
+              />
+            }
+          </mat-form-field>
+        }
+        <mat-form-field appearance="outline" class="full">
+          <mat-label>Efeito ao concluir</mat-label>
+          <mat-select [formControl]="stepForm.controls.effectsPersonStatus">
+            <mat-option value="">Nenhum</mat-option>
+            <mat-option value="active">Marcar pessoa ativa</mat-option>
+            <mat-option value="inactive">Marcar pessoa inativa</mat-option>
+          </mat-select>
+        </mat-form-field>
+      </div>
+    } @else {
+      @if (selectedStep(); as step) {
+      <div class="inspector-body" [formGroup]="stepForm">
+        <div class="inspector-badge" [style.--accent]="stepMeta(step.type).accent">
+          {{ stepMeta(step.type).label }}
+        </div>
+        <div class="inspector-actions">
+          <button mat-icon-button type="button" matTooltip="Mover para cima" (click)="moveSelected(-1)">
+            <mat-icon>arrow_upward</mat-icon>
+          </button>
+          <button mat-icon-button type="button" matTooltip="Mover para baixo" (click)="moveSelected(1)">
+            <mat-icon>arrow_downward</mat-icon>
+          </button>
+          <button
+            mat-icon-button
+            type="button"
+            color="warn"
+            matTooltip="Remover etapa"
+            (click)="removeSelectedStep()"
+          >
+            <mat-icon>delete</mat-icon>
+          </button>
+        </div>
+
+        <mat-form-field appearance="outline" class="full">
+          <mat-label>Chave</mat-label>
+          <input matInput formControlName="key" />
+        </mat-form-field>
+        <mat-form-field appearance="outline" class="full">
+          <mat-label>Tipo</mat-label>
+          <mat-select formControlName="type">
+            @for (item of stepTypes; track item.type) {
+              <mat-option [value]="item.type">{{ item.label }}</mat-option>
+            }
+          </mat-select>
+        </mat-form-field>
+
+        @if (stepRequiresProviders(stepForm.controls.type.value)) {
+          <mat-form-field appearance="outline" class="full">
+            <mat-label>Providers</mat-label>
+            <mat-select
+              formControlName="providerFilter"
+              multiple
+              panelClass="wf-provider-select-panel"
+              (openedChange)="!$event && clearProviderSearch()"
+            >
+              <mat-select-trigger>{{ providerTriggerLabel() }}</mat-select-trigger>
+              <div class="provider-search" (click)="$event.stopPropagation()">
+                <mat-icon>search</mat-icon>
+                <input
+                  type="search"
+                  placeholder="Buscar por nome…"
+                  [value]="providerSearch()"
+                  (input)="onProviderSearch($event)"
+                  (keydown)="$event.stopPropagation()"
+                />
+              </div>
+              @for (p of filteredProviders(); track p.key) {
+                <mat-option [value]="p.key">
+                  {{ p.displayName }}
+                  <span class="provider-key">{{ p.key }}</span>
+                </mat-option>
+              }
+              @if (!filteredProviders().length) {
+                <mat-option disabled>Nenhum provider encontrado</mat-option>
+              }
+            </mat-select>
+            <mat-hint>Obrigatório — busque e selecione um ou mais</mat-hint>
+          </mat-form-field>
+        }
+
+        <mat-form-field appearance="outline" class="full">
+          <mat-label>Connection IDs</mat-label>
+          <input matInput formControlName="connectionIds" placeholder="UUIDs separados por vírgula" />
+        </mat-form-field>
+
+        @switch (stepForm.controls.type.value) {
+          @case ('delay') {
+            <mat-form-field appearance="outline" class="full">
+              <mat-label>Atraso (segundos)</mat-label>
+              <input matInput type="number" min="1" formControlName="delayMs" />
+            </mat-form-field>
+          }
+          @case ('notify') {
+            <mat-form-field appearance="outline" class="full">
+              <mat-label>Canal</mat-label>
+              <mat-select formControlName="notifyChannel">
+                <mat-option value="in_app">In-app</mat-option>
+                <mat-option value="email">E-mail</mat-option>
+              </mat-select>
+            </mat-form-field>
+            <mat-form-field appearance="outline" class="full">
+              <mat-label>Template</mat-label>
+              <input matInput formControlName="notifyTemplate" />
+            </mat-form-field>
+            <mat-form-field appearance="outline" class="full">
+              <mat-label>Destinatário</mat-label>
+              <mat-select formControlName="notifyTo">
+                <mat-option value="admins">Admins</mat-option>
+                <mat-option value="person">Pessoa</mat-option>
+                <mat-option value="unit_owner">Dono da unidade</mat-option>
+              </mat-select>
+            </mat-form-field>
+          }
+          @case ('approval') {
+            <mat-form-field appearance="outline" class="full">
+              <mat-label>Roles (vírgula)</mat-label>
+              <input matInput formControlName="approvalRoles" />
+            </mat-form-field>
+            <mat-form-field appearance="outline" class="full">
+              <mat-label>Timeout (segundos)</mat-label>
+              <input matInput type="number" min="0" formControlName="approvalTimeoutSec" />
+            </mat-form-field>
+          }
+          @case ('webhook') {
+            <mat-form-field appearance="outline" class="full">
+              <mat-label>URL</mat-label>
+              <input matInput formControlName="webhookUrl" />
+            </mat-form-field>
+            <mat-form-field appearance="outline" class="full">
+              <mat-label>Método</mat-label>
+              <mat-select formControlName="webhookMethod">
+                <mat-option value="POST">POST</mat-option>
+                <mat-option value="PUT">PUT</mat-option>
+              </mat-select>
+            </mat-form-field>
+            <mat-form-field appearance="outline" class="full">
+              <mat-label>Body template</mat-label>
+              <textarea matInput rows="3" formControlName="webhookBody"></textarea>
+            </mat-form-field>
+          }
+          @case ('condition') {
+            <mat-form-field appearance="outline" class="full">
+              <mat-label>Operação</mat-label>
+              <mat-select formControlName="conditionOp">
+                <mat-option value="person_status">Status da pessoa</mat-option>
+                <mat-option value="has_identity_on_provider">Tem identidade no provider</mat-option>
+                <mat-option value="person_in_unit">Pessoa na unidade</mat-option>
+              </mat-select>
+            </mat-form-field>
+            <mat-form-field appearance="outline" class="full">
+              <mat-label>Equals</mat-label>
+              <input matInput formControlName="conditionEquals" />
+            </mat-form-field>
+            <mat-form-field appearance="outline" class="full">
+              <mat-label>Provider</mat-label>
+              <mat-select
+                formControlName="conditionProvider"
+                panelClass="wf-provider-select-panel"
+                (openedChange)="!$event && clearProviderSearch()"
+              >
+                <mat-option value="">—</mat-option>
+                <div class="provider-search" (click)="$event.stopPropagation()">
+                  <mat-icon>search</mat-icon>
+                  <input
+                    type="search"
+                    placeholder="Buscar por nome…"
+                    [value]="providerSearch()"
+                    (input)="onProviderSearch($event)"
+                    (keydown)="$event.stopPropagation()"
+                  />
+                </div>
+                @for (p of filteredProviders(); track p.key) {
+                  <mat-option [value]="p.key">{{ p.displayName }}</mat-option>
+                }
+              </mat-select>
+            </mat-form-field>
+            <mat-form-field appearance="outline" class="full">
+              <mat-label>Org unit ID</mat-label>
+              <input matInput formControlName="conditionOrgUnitId" />
+            </mat-form-field>
+            <mat-form-field appearance="outline" class="full">
+              <mat-label>Então</mat-label>
+              <mat-select formControlName="conditionThen">
+                <mat-option value="continue">Continuar</mat-option>
+                <mat-option value="skip_step">Pular etapa</mat-option>
+                <mat-option value="skip_rest">Encerrar restante</mat-option>
+              </mat-select>
+            </mat-form-field>
+          }
+        }
+      </div>
+      }
+    }
+  </mat-dialog-content>
+
+  <mat-dialog-actions align="end">
+    <button mat-flat-button color="primary" type="button" (click)="closeConfigDialog()">
+      Concluído
+    </button>
+  </mat-dialog-actions>
+</ng-template>

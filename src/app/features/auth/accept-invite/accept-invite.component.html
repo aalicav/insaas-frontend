@@ -1,0 +1,53 @@
+<div class="auth-page">
+  <mat-card class="auth-card ih-card-accent">
+    <div class="brand-row">
+      <div class="brand-mark" aria-hidden="true">IH</div>
+      <div>
+        <div class="ih-label">Convite</div>
+        <h1>{{ appName }}</h1>
+      </div>
+    </div>
+
+    @if (tokenMissing()) {
+      <p class="ih-muted">Token de convite ausente. Use o link enviado por e-mail.</p>
+      <a mat-stroked-button color="primary" routerLink="/login">Ir para o login</a>
+    } @else {
+      <p class="ih-muted">
+        Confirme o convite para entrar na organização. Se esta for a primeira vez,
+        defina uma senha (mínimo 8 caracteres). Se você já tem conta, pode deixar a senha em branco.
+      </p>
+
+      <form [formGroup]="form" (ngSubmit)="submit()">
+        <mat-form-field appearance="outline" class="full">
+          <mat-label>Nome (opcional)</mat-label>
+          <input matInput formControlName="name" autocomplete="name" />
+          @if (form.controls.name.touched && form.controls.name.hasError('api')) {
+            <mat-error>{{ form.controls.name.getError('api') }}</mat-error>
+          }
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="full">
+          <mat-label>Senha</mat-label>
+          <input matInput type="password" formControlName="password" autocomplete="new-password" />
+          <mat-hint>Obrigatória só no primeiro acesso. Deixe em branco se já tiver senha.</mat-hint>
+          @if (form.controls.password.touched && form.controls.password.hasError('minlength')) {
+            <mat-error>Mínimo de 8 caracteres</mat-error>
+          } @else if (form.controls.password.touched && form.controls.password.hasError('api')) {
+            <mat-error>{{ form.controls.password.getError('api') }}</mat-error>
+          }
+        </mat-form-field>
+
+        <button mat-flat-button color="primary" class="full submit" [disabled]="loading()">
+          @if (loading()) {
+            <span class="ih-btn-spinner">
+              <mat-spinner diameter="18"></mat-spinner>
+              Aceitando…
+            </span>
+          } @else {
+            Aceitar convite
+          }
+        </button>
+      </form>
+    }
+  </mat-card>
+</div>

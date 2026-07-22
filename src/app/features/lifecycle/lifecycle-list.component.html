@@ -1,0 +1,137 @@
+<section class="ih-page">
+  <app-page-header
+    eyebrow="Ciclo de vida"
+    title="Execuções"
+    subtitle="Histórico de runs de onboarding, offboarding e outros workflows."
+    [hint]="HelpHints.workflowRun"
+  >
+    <a mat-stroked-button routerLink="/workflows">Ver workflows</a>
+  </app-page-header>
+
+  <form class="ih-card filters" [formGroup]="filters" (ngSubmit)="reload()">
+    <mat-form-field appearance="outline">
+      <mat-label>Tipo</mat-label>
+      <mat-select formControlName="kind">
+        <mat-option value="">Todos</mat-option>
+        <mat-option value="onboarding">Onboarding</mat-option>
+        <mat-option value="offboarding">Offboarding</mat-option>
+      </mat-select>
+    </mat-form-field>
+    <mat-form-field appearance="outline">
+      <mat-label>Gatilho</mat-label>
+      <input matInput formControlName="trigger" placeholder="person.offboard" />
+    </mat-form-field>
+    <mat-form-field appearance="outline">
+      <mat-label>ID da pessoa</mat-label>
+      <input matInput formControlName="personId" />
+    </mat-form-field>
+    <div class="filter-actions">
+      <button mat-flat-button color="primary" type="submit">Filtrar</button>
+      @if (hasActiveFilters()) {
+        <button mat-button type="button" (click)="clearFilters()">Limpar</button>
+      }
+    </div>
+  </form>
+
+  @if (error()) {
+    <app-error-state
+      title="Não foi possível carregar as execuções"
+      [message]="error()!"
+      (retry)="reload()"
+    />
+  } @else if (!loading() && !runs().length) {
+    @if (hasActiveFilters()) {
+      <app-empty-state
+        title="Nenhum resultado para estes filtros"
+        description="Ajuste ou limpe os filtros para ver mais execuções."
+        icon="filter_alt_off"
+      >
+        <button mat-stroked-button type="button" (click)="clearFilters()">Limpar filtros</button>
+      </app-empty-state>
+    } @else {
+      <app-empty-state
+        title="Nenhuma execução ainda"
+        description="Dispare um workflow ou gatilho para iniciar um ciclo de vida."
+        icon="play_circle"
+      />
+    }
+  } @else {
+    <div class="list-meta">
+      <span class="ih-muted">
+        @if (loading()) {
+          Carregando…
+        } @else {
+          {{ runs().length }} {{ runs().length === 1 ? 'execução' : 'execuções' }}
+        }
+      </span>
+    </div>
+
+    <div class="ih-table-wrap">
+      @if (loading()) {
+        <div class="skeleton-table">
+          <div class="skeleton-head">
+            <app-skeleton height="0.85rem" width="20%" />
+            <app-skeleton height="0.85rem" width="18%" />
+            <app-skeleton height="0.85rem" width="16%" />
+            <app-skeleton height="0.85rem" width="14%" />
+            <app-skeleton height="0.85rem" width="16%" />
+          </div>
+          @for (_ of skeletonRows; track $index) {
+            <div class="skeleton-row">
+              <app-skeleton height="1.1rem" width="22%" />
+              <app-skeleton height="1.1rem" width="18%" />
+              <app-skeleton height="1.1rem" width="16%" />
+              <app-skeleton height="1.1rem" width="12%" />
+              <app-skeleton height="1.1rem" width="16%" />
+            </div>
+          }
+        </div>
+      } @else {
+        <table mat-table [dataSource]="runs()">
+          <ng-container matColumnDef="person">
+            <th mat-header-cell *matHeaderCellDef>Pessoa</th>
+            <td mat-cell *matCellDef="let row">
+              {{ row.person.displayName || row.person.email }}
+            </td>
+          </ng-container>
+          <ng-container matColumnDef="workflow">
+            <th mat-header-cell *matHeaderCellDef>Workflow</th>
+            <td mat-cell *matCellDef="let row">{{ row.workflow.name }}</td>
+          </ng-container>
+          <ng-container matColumnDef="trigger">
+            <th mat-header-cell *matHeaderCellDef>Gatilho</th>
+            <td mat-cell *matCellDef="let row">{{ row.trigger }}</td>
+          </ng-container>
+          <ng-container matColumnDef="status">
+            <th mat-header-cell *matHeaderCellDef>Status</th>
+            <td mat-cell *matCellDef="let row">
+              <app-status-badge [status]="row.status" [label]="statusLabel(row.status)" />
+            </td>
+          </ng-container>
+          <ng-container matColumnDef="startedAt">
+            <th mat-header-cell *matHeaderCellDef>Início</th>
+            <td mat-cell *matCellDef="let row">
+              @if (row.startedAt) {
+                <span class="ih-num" [title]="fullDate(row.startedAt)">
+                  {{ row.startedAt | relativeTime }}
+                </span>
+              } @else {
+                <span class="ih-muted">—</span>
+              }
+            </td>
+          </ng-container>
+          <tr mat-header-row *matHeaderRowDef="columns"></tr>
+          <tr
+            mat-row
+            *matRowDef="let row; columns: columns"
+            class="clickable-row"
+            (click)="open(row)"
+            (keydown.enter)="open(row)"
+            tabindex="0"
+            role="link"
+          ></tr>
+        </table>
+      }
+    </div>
+  }
+</section>
