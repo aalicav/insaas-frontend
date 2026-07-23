@@ -24,6 +24,10 @@ export interface Person {
   department: string | null;
   jobTitle: string | null;
   status: PersonStatus;
+  terminatedAt?: string | null;
+  hiredAt?: string | null;
+  employeeNumber?: string | null;
+  employmentSource?: string | null;
   source?: string;
   teamUnitId?: string | null;
   costCenterUnitId?: string | null;
@@ -52,6 +56,7 @@ export interface PersonIdentity {
 
 export interface PersonLicense {
   id: string;
+  assignmentId?: string;
   provider: string;
   externalId?: string;
   skuId?: string | null;
@@ -64,6 +69,7 @@ export interface PersonLicense {
   identityId?: string;
   connectionId?: string;
   assignedAt?: string | null;
+  availableActions?: Array<'revoke'>;
 }
 
 export interface PersonDetail extends Person {

@@ -8,6 +8,7 @@ import { MatSelectModule } from '@angular/material/select';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { PeopleApiService } from '../../../core/api/people-api.service';
+import { LicensesApiService } from '../../../core/api/licenses-api.service';
 import { WorkflowsApiService } from '../../../core/api/workflows-api.service';
 import { AuthService } from '../../../core/auth/auth.service';
 import { extractApiErrorMessage } from '../../../core/api/api-error';
@@ -28,7 +29,9 @@ import {
   AbsenceReason,
   PersonAbsence,
   PersonDetail,
+  PersonLicense,
 } from '../../../core/models/people.models';
+import { LicenseAssignmentAction } from '../../../core/models/licenses.models';
 import { WorkflowRun } from '../../../core/models/workflows.models';
 
 @Component({
@@ -57,6 +60,7 @@ import { WorkflowRun } from '../../../core/models/workflows.models';
 export class PeopleDetailComponent implements OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly api = inject(PeopleApiService);
+  private readonly licensesApi = inject(LicensesApiService);
   private readonly workflows = inject(WorkflowsApiService);
   private readonly feedback = inject(FeedbackService);
   private readonly fb = inject(FormBuilder);
@@ -68,6 +72,7 @@ export class PeopleDetailComponent implements OnInit {
   readonly runs = signal<WorkflowRun[]>([]);
   readonly lifecycleBusy = signal(false);
   readonly absenceBusy = signal(false);
+  readonly licenseBusyId = signal<string | null>(null);
   readonly providerLabel = providerLabel;
   readonly absenceReasonLabel = absenceReasonLabel;
   readonly fullDate = fullDate;
@@ -214,6 +219,34 @@ export class PeopleDetailComponent implements OnInit {
       error: (err) => {
         this.lifecycleBusy.set(false);
         this.feedback.fromError(err, 'Falha ao iniciar offboarding');
+      },
+    });
+  }
+
+  runLicenseAction(license: PersonLicense, action: LicenseAssignmentAction): void {
+    const assignmentId = license.assignmentId;
+    if (!assignmentId || this.licenseBusyId()) return;
+    if (action !== 'revoke') return;
+
+    const sku = license.skuName || license.skuId || license.externalId || 'licença';
+    if (
+      !window.confirm(
+        `Revogar a licença "${sku}" desta pessoa no provedor? A conta permanece; só a atribuição é removida.`,
+      )
+    ) {
+      return;
+    }
+
+    this.licenseBusyId.set(assignmentId);
+    this.licensesApi.runAction(assignmentId, action).subscribe({
+      next: () => {
+        this.licenseBusyId.set(null);
+        this.feedback.success('Licença revogada');
+        this.reload();
+      },
+      error: (err) => {
+        this.licenseBusyId.set(null);
+        this.feedback.fromError(err, 'Falha ao revogar licença');
       },
     });
   }

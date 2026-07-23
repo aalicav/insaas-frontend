@@ -69,6 +69,10 @@ const PROVIDER_BLURBS: Record<string, string> = {
     'Sincronize usuários do JumpCloud. Times são atribuídos automaticamente a partir do departamento.',
   oracle_ebs:
     'Importe centros de custo e funcionários do Oracle EBS. O sync atribui centro de custo automaticamente.',
+  senior:
+    'Importe a folha Senior (HCM). Admissão, demissão e matrícula passam a ser a fonte autoritativa do vínculo.',
+  totvs_rm:
+    'Importe a folha TOTVS RM. Admissão, demissão e matrícula passam a ser a fonte autoritativa do vínculo.',
 };
 
 const PROVIDER_NAMES: Record<string, string> = {
@@ -83,6 +87,8 @@ const PROVIDER_NAMES: Record<string, string> = {
   onelogin: 'OneLogin',
   jumpcloud: 'JumpCloud',
   oracle_ebs: 'Oracle EBS',
+  senior: 'Senior Folha / HCM',
+  totvs_rm: 'TOTVS RM Folha',
 };
 
 export interface ProviderVisual {

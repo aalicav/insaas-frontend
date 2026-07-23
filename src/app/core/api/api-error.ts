@@ -68,10 +68,16 @@ export function extractApiErrorMessage(error: unknown, fallback = 'Ocorreu um er
   return extractApiError(error, fallback).message;
 }
 
-/** Maps Nest-style validation messages (`property constraint`) onto form controls when possible. */
+/** Maps Nest-style validation / conflict messages onto form controls when possible. */
 export function applyApiValidationErrors(form: FormGroup, error: unknown): boolean {
   const info = extractApiError(error);
-  if (info.status !== 400 || !info.messages.length) return false;
+  // 400 = class-validator; 409 = business uniqueness (e.g. duplicate person email)
+  if (
+    (info.status !== 400 && info.status !== 409) ||
+    !info.messages.length
+  ) {
+    return false;
+  }
 
   let applied = false;
   for (const msg of info.messages) {
@@ -80,11 +86,20 @@ export function applyApiValidationErrors(form: FormGroup, error: unknown): boole
     const control = form.get(controlName);
     if (!control) continue;
     const current = control.errors ?? {};
-    control.setErrors({ ...current, api: msg });
+    const displayMsg = stripPropertyPrefix(msg, controlName);
+    control.setErrors({ ...current, api: displayMsg });
     control.markAsTouched();
     applied = true;
   }
   return applied;
+}
+
+function stripPropertyPrefix(message: string, controlName: string): string {
+  const prefix = `${controlName} `;
+  if (message.toLowerCase().startsWith(prefix.toLowerCase())) {
+    return message.slice(prefix.length);
+  }
+  return message;
 }
 
 function guessControlName(form: FormGroup, message: string): string | null {

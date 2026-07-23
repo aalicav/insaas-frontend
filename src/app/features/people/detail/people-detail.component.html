@@ -50,6 +50,22 @@
           }
         </div>
         <p class="ih-muted">{{ p.jobTitle || 'Sem cargo' }} · {{ p.department || 'Sem departamento' }}</p>
+        @if (p.employeeNumber || p.hiredAt || p.terminatedAt || p.employmentSource) {
+          <p class="ih-muted">
+            @if (p.employeeNumber) {
+              Matrícula: {{ p.employeeNumber }}
+            }
+            @if (p.hiredAt) {
+              · Admissão: <span [title]="fullDate(p.hiredAt)">{{ p.hiredAt | relativeTime }}</span>
+            }
+            @if (p.terminatedAt) {
+              · Demissão: <span [title]="fullDate(p.terminatedAt)">{{ p.terminatedAt | relativeTime }}</span>
+            }
+            @if (p.employmentSource) {
+              · Folha: {{ providerLabel(p.employmentSource) }}
+            }
+          </p>
+        }
       </article>
       <article class="ih-card">
         <div class="ih-label">
@@ -171,9 +187,11 @@
     </section>
 
     <section class="ih-card">
-      <div class="ih-label">Licenças ({{ p.licenses.length }})</div>
+      <div class="ih-label">Licenças atribuídas ({{ p.licenses.length }})</div>
       @if (!p.licenses.length) {
-        <p class="ih-muted">Nenhuma licença atribuída às identities desta pessoa.</p>
+        <p class="ih-muted">
+          Nenhuma licença atribuída às identities desta pessoa. Atribuições vêm do sync do provedor — não é possível criar licenças aqui.
+        </p>
       } @else {
         <div class="ih-table-wrap licenses-table">
           <table>
@@ -184,10 +202,13 @@
                 <th>Provedor</th>
                 <th>Assentos</th>
                 <th>Atribuídas (sku)</th>
+                @if (canLifecycle()) {
+                  <th>Ações</th>
+                }
               </tr>
             </thead>
             <tbody>
-              @for (license of p.licenses; track license.id) {
+              @for (license of p.licenses; track license.assignmentId || license.id) {
                 <tr>
                   <td>{{ license.skuName || license.name || license.externalId || 'Sem nome' }}</td>
                   <td>
@@ -208,6 +229,23 @@
                       <span class="ih-muted">—</span>
                     }
                   </td>
+                  @if (canLifecycle()) {
+                    <td class="license-actions">
+                      @if (license.assignmentId && license.availableActions?.includes('revoke')) {
+                        <button
+                          mat-button
+                          type="button"
+                          color="warn"
+                          [disabled]="licenseBusyId() === license.assignmentId"
+                          (click)="runLicenseAction(license, 'revoke')"
+                        >
+                          Revogar
+                        </button>
+                      } @else {
+                        <span class="ih-muted">Sem ações</span>
+                      }
+                    </td>
+                  }
                 </tr>
               }
             </tbody>

@@ -10,7 +10,7 @@ import { MatSelectModule } from '@angular/material/select';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { PeopleApiService } from '../../../core/api/people-api.service';
 import { OrgStructureApiService } from '../../../core/api/org-structure-api.service';
-import { applyApiValidationErrors, extractApiErrorMessage } from '../../../core/api/api-error';
+import { applyApiValidationErrors, clearApiErrors, extractApiErrorMessage } from '../../../core/api/api-error';
 import { FeedbackService } from '../../../core/feedback/feedback.service';
 import { PageHeaderComponent } from '../../../shared/components/page-header/page-header.component';
 import { LoadingStateComponent } from '../../../shared/components/loading-state/loading-state.component';
@@ -117,10 +117,12 @@ export class PeopleFormComponent implements OnInit {
   }
 
   submit(): void {
+    if (this.saving()) return;
     if (this.form.invalid) {
       this.form.markAllAsTouched();
       return;
     }
+    clearApiErrors(this.form.controls.email);
     this.saving.set(true);
     const raw = this.form.getRawValue();
     const id = this.personId();
