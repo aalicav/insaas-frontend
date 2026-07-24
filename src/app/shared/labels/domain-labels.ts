@@ -75,7 +75,7 @@ const PROVIDER_BLURBS: Record<string, string> = {
   senior:
     'Importe a folha Senior (HCM). Admissão, demissão e matrícula passam a ser a fonte autoritativa do vínculo.',
   totvs_rm:
-    'Importe a folha TOTVS RM. Admissão, demissão e matrícula passam a ser a fonte autoritativa do vínculo.',
+    'Conecte o host TOTVS RM com usuário/senha. Sincronizamos employeeDataContent (admissão, demissão, matrícula e centros de custo) como fonte autoritativa do vínculo.',
 };
 
 const PROVIDER_NAMES: Record<string, string> = {
