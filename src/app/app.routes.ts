@@ -148,6 +148,14 @@ export const routes: Routes = [
           ),
       },
       {
+        path: 'shadow-it',
+        canActivate: [permissionGuard('inventory:read')],
+        loadComponent: () =>
+          import('./features/shadow-it/shadow-it.component').then(
+            (m) => m.ShadowItComponent,
+          ),
+      },
+      {
         path: 'contracts/new',
         canActivate: [permissionGuard('contracts:write')],
         loadComponent: () =>

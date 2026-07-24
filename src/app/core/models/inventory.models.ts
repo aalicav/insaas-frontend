@@ -1,4 +1,4 @@
-export type ManagedAppStatus = 'unmanaged' | 'sanctioned';
+export type ManagedAppStatus = 'unmanaged' | 'sanctioned' | 'ignored';
 export type ManagedAppCriticality = 'low' | 'medium' | 'high' | 'critical';
 
 export interface ManagedAppListParams {
@@ -48,6 +48,7 @@ export interface ManagedApp {
   ownerUserId: string | null;
   ownerPersonId: string | null;
   sourceAppId: string | null;
+  reviewedAt?: string | null;
   createdAt: string;
   updatedAt: string;
   tags: string[];

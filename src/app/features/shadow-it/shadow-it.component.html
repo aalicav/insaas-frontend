@@ -1,0 +1,156 @@
+<section class="ih-page">
+  <app-page-header
+    eyebrow="Governança"
+    title="Shadow IT"
+    subtitle="Apps OAuth descobertos no IdP que ainda não foram autorizados."
+    [hint]="HelpHints.shadowIt"
+  />
+
+  @if (summary(); as s) {
+    <div class="summary-row">
+      <div class="stat">
+        <span class="stat-value">{{ s.unmanaged }}</span>
+        <span class="stat-label">Pendentes</span>
+      </div>
+      <div class="stat">
+        <span class="stat-value">{{ s.sensitive }}</span>
+        <span class="stat-label">Escopos sensíveis</span>
+      </div>
+      <div class="stat">
+        <span class="stat-value">{{ s.ignored }}</span>
+        <span class="stat-label">Ignorados</span>
+      </div>
+    </div>
+  }
+
+  <form class="ih-card filters" [formGroup]="filters" (ngSubmit)="reload()">
+    <mat-form-field appearance="outline">
+      <mat-label>Buscar nome</mat-label>
+      <input matInput formControlName="q" placeholder="Slack, Notion…" />
+    </mat-form-field>
+    <mat-checkbox formControlName="includeIgnored">Incluir ignorados</mat-checkbox>
+    <div class="filter-actions">
+      <button mat-flat-button color="primary" type="submit">Filtrar</button>
+    </div>
+  </form>
+
+  <p class="ih-muted list-hint">
+    Autorize para inventário, ignore ruído esperado, ou revise detalhes em
+    <a routerLink="/inventory">Inventário</a>.
+  </p>
+
+  @if (loading()) {
+    <div class="ih-card skeleton-table" aria-busy="true">
+      <div class="skeleton-head">
+        <app-skeleton height="0.85rem" />
+        <app-skeleton height="0.85rem" />
+        <app-skeleton height="0.85rem" />
+      </div>
+      @for (row of skeletonRows; track row) {
+        <div class="skeleton-row">
+          <app-skeleton height="1.1rem" />
+          <app-skeleton height="1.1rem" />
+          <app-skeleton height="1.1rem" />
+        </div>
+      }
+    </div>
+  } @else if (error()) {
+    <app-error-state [message]="error()!" (retry)="reload()" />
+  } @else if (!apps().length) {
+    <app-empty-state
+      title="Nenhum Shadow IT pendente"
+      description="Após sincronizar Microsoft 365, Azure ou Google Workspace, apps OAuth de terceiros aparecem aqui."
+    />
+  } @else {
+    <div class="ih-card table-wrap">
+      <table mat-table [dataSource]="apps()" class="ih-table">
+        <ng-container matColumnDef="name">
+          <th mat-header-cell *matHeaderCellDef>App</th>
+          <td mat-cell *matCellDef="let row">
+            <div class="name-cell">
+              <strong>{{ row.name }}</strong>
+              @if (row.sensitiveScopes) {
+                <span class="sensitive-flag">sensível</span>
+              }
+              @if (row.publisherName) {
+                <span class="ih-muted">{{ row.publisherName }}</span>
+              }
+            </div>
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="provider">
+          <th mat-header-cell *matHeaderCellDef>Fonte</th>
+          <td mat-cell *matCellDef="let row">
+            {{ providerLabel(row.provider) }}
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="consents">
+          <th mat-header-cell *matHeaderCellDef>Consentimentos</th>
+          <td mat-cell *matCellDef="let row">{{ row.userConsentCount }}</td>
+        </ng-container>
+
+        <ng-container matColumnDef="scopes">
+          <th mat-header-cell *matHeaderCellDef>Escopos</th>
+          <td mat-cell *matCellDef="let row">
+            <span class="scopes" [title]="row.scopes.join(' ')">{{
+              scopePreview(row.scopes)
+            }}</span>
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="status">
+          <th mat-header-cell *matHeaderCellDef>Status</th>
+          <td mat-cell *matCellDef="let row">
+            <app-status-badge [status]="row.status" />
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="actions">
+          <th mat-header-cell *matHeaderCellDef></th>
+          <td mat-cell *matCellDef="let row">
+            @if (canWrite()) {
+              <div class="row-actions">
+                @if (row.status === 'unmanaged') {
+                  <button
+                    mat-stroked-button
+                    type="button"
+                    [disabled]="actingId() === row.id"
+                    (click)="sanction(row)"
+                  >
+                    Autorizar
+                  </button>
+                  <button
+                    mat-button
+                    type="button"
+                    [disabled]="actingId() === row.id"
+                    (click)="ignore(row)"
+                  >
+                    Ignorar
+                  </button>
+                }
+                @if (row.status === 'ignored') {
+                  <button
+                    mat-button
+                    type="button"
+                    [disabled]="actingId() === row.id"
+                    (click)="reopen(row)"
+                  >
+                    Reabrir
+                  </button>
+                }
+                <a mat-button [routerLink]="['/inventory', row.id]">Detalhe</a>
+              </div>
+            } @else {
+              <a mat-button [routerLink]="['/inventory', row.id]">Detalhe</a>
+            }
+          </td>
+        </ng-container>
+
+        <tr mat-header-row *matHeaderRowDef="columns"></tr>
+        <tr mat-row *matRowDef="let row; columns: columns"></tr>
+      </table>
+    </div>
+  }
+</section>

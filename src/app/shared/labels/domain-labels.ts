@@ -13,6 +13,9 @@ const STATUS_LABELS: Record<string, string> = {
   queued: 'Na fila',
   running: 'Em execução',
   unknown: 'Desconhecido',
+  unmanaged: 'Não gerenciado',
+  sanctioned: 'Autorizado',
+  ignored: 'Ignorado',
 };
 
 const AUTH_TYPE_LABELS: Record<string, string> = {

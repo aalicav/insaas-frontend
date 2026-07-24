@@ -99,6 +99,12 @@ export class ShellComponent {
       permissions: ['inventory:read'],
     },
     {
+      label: 'Shadow IT',
+      route: '/shadow-it',
+      icon: 'visibility_off',
+      permissions: ['inventory:read'],
+    },
+    {
       label: 'Contratos',
       route: '/contracts',
       icon: 'description',

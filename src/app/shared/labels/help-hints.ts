@@ -11,13 +11,15 @@ export const HelpHints = {
   catalogApp:
     'Aplicativo detectado no provider (ex.: app OAuth no Microsoft). Diferente do inventário gerenciado.',
   managedApp:
-    'App que a organização acompanha de propósito: criticidade, dono e status (autorizado ou não).',
+    'App que a organização acompanha de propósito: criticidade, dono e status (autorizado, não gerenciado ou ignorado).',
   promoteApp:
     'Transforma um app sincronizado do catálogo em app gerenciado no inventário.',
   criticality:
     'Impacto se o app falhar ou for mal usado: baixa a crítica. Ajuda a priorizar governança.',
   sanctioned:
-    'Autorizado: uso aprovado pela organização. Não gerenciado: ainda sem decisão formal.',
+    'Autorizado: uso aprovado pela organização. Não gerenciado: ainda sem decisão formal. Ignorado: revisado e descartado da fila Shadow IT.',
+  shadowIt:
+    'Apps OAuth descobertos no IdP (Entra / Google) que ainda não foram autorizados. Ignore o que for esperado ou autorize no inventário.',
   reconcile:
     'Cruza identidades sincronizadas com o cadastro de pessoas, cria vínculos e atribui time/centro de custo automaticamente quando a fonte envia esses dados.',
   inactiveDays:

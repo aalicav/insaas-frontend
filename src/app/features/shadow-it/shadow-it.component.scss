@@ -1,0 +1,80 @@
+.summary-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.stat {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  min-width: 7rem;
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--ih-border);
+  border-radius: var(--ih-radius, 8px);
+  background: var(--ih-bg-secondary, transparent);
+}
+
+.stat-value {
+  font-size: var(--ih-text-xl, 1.5rem);
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.stat-label {
+  font-size: 0.8rem;
+  color: var(--ih-text-secondary);
+}
+
+.list-hint {
+  margin: 0 0 0.75rem;
+}
+
+.name-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.sensitive-flag {
+  display: inline-flex;
+  width: fit-content;
+  padding: 0.1rem 0.45rem;
+  border-radius: 999px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: #fecdd3;
+  border: 1px solid #9f1239;
+  background: #3b1219;
+}
+
+.scopes {
+  font-size: 0.85rem;
+  color: var(--ih-text-secondary);
+}
+
+.row-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  justify-content: flex-end;
+}
+
+.table-wrap {
+  overflow-x: auto;
+}
+
+.skeleton-table {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 1rem;
+}
+
+.skeleton-head,
+.skeleton-row {
+  display: grid;
+  grid-template-columns: 1.6fr 1fr 1fr;
+  gap: 1rem;
+}

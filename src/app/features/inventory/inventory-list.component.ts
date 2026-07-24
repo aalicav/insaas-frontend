@@ -161,6 +161,7 @@ export class InventoryListComponent implements OnInit {
     const labels: Record<string, string> = {
       unmanaged: 'Não gerenciado',
       sanctioned: 'Autorizado',
+      ignored: 'Ignorado',
     };
     return labels[value] ?? value;
   }
